@@ -47,54 +47,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         body {
             margin: 0;
-            background: #eaf4f8;
-            height: 100vh; /* force full screen */
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+
+            background: linear-gradient(135deg, #05264d, #0b6b67, #1b4fa3);
         }
 
         .card {
             width: 100%;
-            max-width: 480px; /* slightly smaller */
-            background: #fff;
+            max-width: 460px;
+            background: #ffffff;
             border-radius: 18px;
-            padding: 24px; /* less padding */
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            padding: 22px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.15);
         }
 
         .logo-box {
-            width: 84px;
-            height: 84px;
-            margin: 0 auto 20px;
-            border-radius: 20px;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 12px;
+            border-radius: 18px;
             background: linear-gradient(135deg, #00b7c6, #1769ff);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 38px;
+            font-size: 30px;
         }
 
         h1 {
             text-align: center;
-            margin: 0 0 10px;
-            font-size: 28px;
+            margin: 0 0 6px;
+            font-size: 24px;
             color: #111;
         }
 
         .subtitle {
             text-align: center;
             color: #6b7280;
-            font-size: 16px;
-            margin-bottom: 28px;
+            font-size: 14px;
+            margin-bottom: 18px;
         }
 
         .message {
-            padding: 12px 14px;
+            padding: 10px 12px;
             border-radius: 10px;
-            margin-bottom: 18px;
-            font-size: 14px;
+            margin-bottom: 14px;
+            font-size: 13px;
             background: #ffe8e8;
             color: #b00020;
         }
@@ -106,20 +107,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 700;
-            font-size: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 13px;
             color: #111;
         }
 
         input {
             width: 100%;
-            padding: 14px 16px;
+            padding: 11px 14px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #f2f4f7;
-            font-size: 16px;
-            margin-bottom: 22px;
+            font-size: 14px;
+            margin-bottom: 14px;
             outline: none;
         }
 
@@ -132,9 +133,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border: none;
             background: #0ea5a0;
             color: white;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 18px;
+            padding: 13px;
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: 700;
             cursor: pointer;
         }
@@ -145,14 +146,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .bottom-text {
             text-align: center;
-            margin-top: 26px;
+            margin-top: 14px;
             color: #374151;
-            font-size: 15px;
+            font-size: 13px;
         }
 
         .bottom-text a {
             color: #0891b2;
-            font-weight: 700;
+            font-weight: 600;
             text-decoration: none;
         }
 
@@ -163,7 +164,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         hr {
             border: none;
             border-top: 1px solid #e5e7eb;
-            margin: 22px 0;
+            margin: 14px 0;
         }
 
         .back-link-wrap {
@@ -171,16 +172,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .back-link {
-            font-size: 15px;
+            font-size: 13px;
             color: #0891b2;
-            font-weight: 700;
+            font-weight: 600;
             text-decoration: none;
         }
 
         .back-link:hover {
             text-decoration: underline;
         }
-    </style>
 </head>
 <body>
     <div class="card">
