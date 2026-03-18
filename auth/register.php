@@ -181,6 +181,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .back-link:hover {
             text-decoration: underline;
         }
+</style>
 </head>
 <body>
     <div class="card">
