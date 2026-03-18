@@ -215,7 +215,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <hr>
 
         <div class="back-link-wrap">
-            <a href="login.php" class="back-link">← Back to Patient Login</a>
+            <a href="patient-login.php" class="back-link">← Back to Patient Login</a>
         </div>
     </div>
 </body>
