@@ -57,10 +57,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .card {
             width: 100%;
-            max-width: 480px;
+            max-width: 560px;
             background: #fff;
             border-radius: 20px;
-            padding: 32px;
+            padding: 20px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
 
