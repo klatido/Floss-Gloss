@@ -43,11 +43,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         body {
             margin: 0;
-            background: #eaf4f8;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: linear-gradient(135deg, #05264d, #0b6b67, #1b4fa3);
         }
 
         .card {
