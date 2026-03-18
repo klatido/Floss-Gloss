@@ -2,29 +2,30 @@
 include("../config/database.php");
 
 $message = "";
+$is_success = false;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
-    $confirm = $_POST['confirm_password'];
+    $confirm_password = $_POST['confirm_password'];
 
-    // Basic validation
-    if ($password !== $confirm) {
-        $message = "Passwords do not match!";
+    if ($password !== $confirm_password) {
+        $message = "Passwords do not match.";
     } else {
-        // Check if email already exists
-        $check = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
-        
-        if (mysqli_num_rows($check) > 0) {
-            $message = "Email already exists!";
+        $check_query = "SELECT * FROM users WHERE email = '$email'";
+        $check_result = mysqli_query($conn, $check_query);
+
+        if ($check_result && mysqli_num_rows($check_result) > 0) {
+            $message = "Email already exists.";
         } else {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            $query = "INSERT INTO users (email, password_hash, role)
-                      VALUES ('$email', '$hashed', 'patient')";
+            $insert_query = "INSERT INTO users (role, email, password_hash)
+                             VALUES ('patient', '$email', '$hashed_password')";
 
-            if (mysqli_query($conn, $query)) {
-                $message = "Registered successfully! You can now login.";
+            if (mysqli_query($conn, $insert_query)) {
+                $message = "Registration successful. You can now log in.";
+                $is_success = true;
             } else {
                 $message = "Error: " . mysqli_error($conn);
             }
@@ -38,147 +39,184 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Floss & Gloss Dental</title>
-
     <style>
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
             font-family: Arial, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #e6f7ff, #f5fcff);
+            margin: 0;
+            background: #eaf4f8;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 24px;
         }
 
-        .register-container {
+        .card {
             width: 100%;
-            max-width: 420px;
+            max-width: 560px;
             background: #fff;
-            padding: 36px;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
 
-        .brand {
+        .logo-box {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 20px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #00b7c6, #1769ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 38px;
+        }
+
+        h1 {
             text-align: center;
-            margin-bottom: 24px;
+            margin: 0 0 10px;
+            font-size: 28px;
+            color: #111;
         }
 
-        .brand h1 {
-            color: #0f3d56;
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            font-size: 16px;
+            margin-bottom: 28px;
         }
 
-        .brand p {
+        .message {
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 18px;
             font-size: 14px;
-            color: #666;
+            background: #ffe8e8;
+            color: #b00020;
         }
 
-        .form-group {
-            margin-bottom: 16px;
+        .message.success {
+            background: #e7f8ec;
+            color: #18794e;
         }
 
         label {
             display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
-            color: #333;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #111;
         }
 
         input {
             width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            background: #f2f4f7;
+            font-size: 16px;
+            margin-bottom: 22px;
             outline: none;
         }
 
         input:focus {
-            border-color: #1496b8;
+            box-shadow: 0 0 0 2px #18a8b5;
         }
 
         .btn {
             width: 100%;
-            padding: 12px;
-            background: #1496b8;
-            color: white;
             border: none;
-            border-radius: 8px;
+            background: #0ea5a0;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: bold;
         }
 
         .btn:hover {
-            background: #0f84a3;
+            background: #0b8f8a;
         }
 
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            background: #ffe9e9;
-            color: #b30000;
-            font-size: 14px;
-        }
-
-        .success {
-            background: #e6ffed;
-            color: #0a7d2c;
-        }
-
-        .link {
-            margin-top: 12px;
+        .bottom-text {
             text-align: center;
-            font-size: 14px;
+            margin-top: 26px;
+            color: #374151;
+            font-size: 15px;
         }
 
-        .link a {
-            color: #1496b8;
+        .bottom-text a {
+            color: #0891b2;
+            font-weight: 700;
             text-decoration: none;
+        }
+
+        .bottom-text a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 22px 0;
+        }
+
+        .back-link-wrap {
+            text-align: center;
+        }
+
+        .back-link {
+            font-size: 15px;
+            color: #0891b2;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
+    <div class="card">
+        <div class="logo-box">🩺</div>
+        <h1>Create Your Account</h1>
+        <div class="subtitle">Register for your patient account</div>
 
-<div class="register-container">
-    <div class="brand">
-        <h1>Floss & Gloss</h1>
-        <p>Create your account</p>
+        <?php if (!empty($message)) : ?>
+            <div class="message <?php echo $is_success ? 'success' : ''; ?>">
+                <?php echo $message; ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" placeholder="john.smith@email.com" required>
+
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" placeholder="Create a password" required>
+
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
+
+            <button type="submit" class="btn">Register</button>
+        </form>
+
+        <div class="bottom-text">
+            Already have an account? <a href="login.php">Login here</a>
+        </div>
+
+        <hr>
+
+        <div class="back-link-wrap">
+            <a href="login.php" class="back-link">← Back to Patient Login</a>
+        </div>
     </div>
-
-    <?php if (!empty($message)) : ?>
-        <div class="message <?php echo (strpos($message, 'success') !== false) ? 'success' : ''; ?>">
-            <?php echo $message; ?>
-        </div>
-    <?php endif; ?>
-
-    <form method="POST">
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" name="email" required>
-        </div>
-
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" name="password" required>
-        </div>
-
-        <div class="form-group">
-            <label>Confirm Password</label>
-            <input type="password" name="confirm_password" required>
-        </div>
-
-        <button type="submit" class="btn">Register</button>
-
-        <div class="link">
-            Already have an account? <a href="login.php">Login</a>
-        </div>
-    </form>
-</div>
-
 </body>
 </html>
