@@ -209,7 +209,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
 
         <div class="bottom-text">
-            Already have an account? <a href="login.php">Login here</a>
+            Already have an account? <a href="patient-login.php">Login here</a>
         </div>
 
         <hr>
