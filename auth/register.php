@@ -65,62 +65,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .logo-box {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 12px;
-            border-radius: 18px;
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 20px;
+            border-radius: 20px;
             background: linear-gradient(135deg, #00b7c6, #1769ff);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 30px;
+            font-size: 38px;
         }
 
         h1 {
             text-align: center;
-            margin: 0 0 6px;
-            font-size: 24px;
+            margin: 0 0 10px;
+            font-size: 28px;
             color: #111;
         }
 
         .subtitle {
             text-align: center;
             color: #6b7280;
-            font-size: 14px;
-            margin-bottom: 18px;
+            font-size: 16px;
+            margin-bottom: 28px;
         }
 
         .message {
-            padding: 10px 12px;
-            border-radius: 10px;
-            margin-bottom: 14px;
-            font-size: 13px;
             background: #ffe8e8;
             color: #b00020;
-        }
-
-        .message.success {
-            background: #e7f8ec;
-            color: #18794e;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 14px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 15px;
             color: #111;
         }
 
         input {
             width: 100%;
-            padding: 11px 14px;
+            padding: 14px 16px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             background: #f2f4f7;
-            font-size: 14px;
-            margin-bottom: 14px;
+            font-size: 16px;
+            margin-bottom: 22px;
             outline: none;
         }
 
@@ -128,14 +123,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             box-shadow: 0 0 0 2px #18a8b5;
         }
 
+        .forgot {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0891b2;
+            text-decoration: none;
+            font-size: 15px;
+        }
+
         .btn {
             width: 100%;
             border: none;
             background: #0ea5a0;
             color: white;
-            padding: 13px;
-            border-radius: 10px;
-            font-size: 16px;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
             font-weight: 700;
             cursor: pointer;
         }
@@ -146,40 +149,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .bottom-text {
             text-align: center;
-            margin-top: 14px;
+            margin-top: 26px;
             color: #374151;
-            font-size: 13px;
+            font-size: 15px;
         }
 
-        .bottom-text a {
+        .bottom-text a,
+        .admin-link {
             color: #0891b2;
-            font-weight: 600;
+            font-weight: 700;
             text-decoration: none;
-        }
-
-        .bottom-text a:hover {
-            text-decoration: underline;
         }
 
         hr {
             border: none;
             border-top: 1px solid #e5e7eb;
-            margin: 14px 0;
+            margin: 22px 0;
         }
 
-        .back-link-wrap {
+        .admin-link-wrap {
             text-align: center;
         }
 
-        .back-link {
-            font-size: 13px;
-            color: #0891b2;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
+        .admin-link {
+            font-size: 15px;
         }
 </style>
 </head>
