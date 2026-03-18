@@ -48,19 +48,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         body {
             margin: 0;
             background: #eaf4f8;
-            min-height: 100vh;
+            height: 100vh; /* force full screen */
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
         }
 
         .card {
             width: 100%;
-            max-width: 560px;
+            max-width: 480px; /* slightly smaller */
             background: #fff;
-            border-radius: 20px;
-            padding: 32px;
+            border-radius: 18px;
+            padding: 24px; /* less padding */
             box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
 
