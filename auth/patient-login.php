@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION["role"] = $user["role"];
             $_SESSION["email"] = $user["email"];
 
-            header("Location: ../patient/dashboard.php");
+            header("Location: ../patient/patient-dashboard.php");
             exit();
         } else {
             $message = "Invalid password.";
