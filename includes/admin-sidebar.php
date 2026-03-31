@@ -157,7 +157,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="nav-icon">🗎</span> Medical Records
                 </a>
 
-                <a href="billing.php" class="<?php echo ($current_page === 'billing.php') ? 'active' : ''; ?>">
+                <a href="manage-billing.php" class="<?php echo ($current_page === 'manage-billing.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">▭</span> Billing
                 </a>
             </nav>

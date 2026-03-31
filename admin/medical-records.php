@@ -145,6 +145,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record'])) {
 }
 
 /* --------------------------------------------------
+   EDIT MEDICAL RECORD
+-------------------------------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record'])) {
+    $note_id = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
+    $patient_id = isset($_POST['patient_id']) ? (int)$_POST['patient_id'] : 0;
+    $procedure = trim($_POST['procedure'] ?? '');
+    $treatment_notes = trim($_POST['treatment_notes'] ?? '');
+
+    if ($note_id <= 0 || $patient_id <= 0 || $procedure === '' || $treatment_notes === '') {
+        header("Location: " . basename(__FILE__) . "?message=invalid_edit");
+        exit();
+    }
+
+    $check_note_sql = "
+        SELECT note_id
+        FROM medical_notes
+        WHERE note_id = ?
+        LIMIT 1
+    ";
+    $check_note_stmt = mysqli_prepare($conn, $check_note_sql);
+
+    if (!$check_note_stmt) {
+        header("Location: " . basename(__FILE__) . "?message=error");
+        exit();
+    }
+
+    mysqli_stmt_bind_param($check_note_stmt, "i", $note_id);
+    mysqli_stmt_execute($check_note_stmt);
+    $check_note_result = mysqli_stmt_get_result($check_note_stmt);
+
+    if (!$check_note_result || mysqli_num_rows($check_note_result) === 0) {
+        header("Location: " . basename(__FILE__) . "?message=notfound");
+        exit();
+    }
+
+    $update_sql = "
+        UPDATE medical_notes
+        SET
+            patient_id = ?,
+            treatment_plan = ?,
+            note_text = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE note_id = ?
+        LIMIT 1
+    ";
+    $update_stmt = mysqli_prepare($conn, $update_sql);
+
+    if (!$update_stmt) {
+        header("Location: " . basename(__FILE__) . "?message=error");
+        exit();
+    }
+
+    mysqli_stmt_bind_param($update_stmt, "issi", $patient_id, $procedure, $treatment_notes, $note_id);
+
+    if (mysqli_stmt_execute($update_stmt)) {
+        header("Location: " . basename(__FILE__) . "?message=updated");
+        exit();
+    }
+
+    header("Location: " . basename(__FILE__) . "?message=error");
+    exit();
+}
+
+/* --------------------------------------------------
+   DELETE MEDICAL RECORD
+-------------------------------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_record'])) {
+    $note_id = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
+
+    if ($note_id <= 0) {
+        header("Location: " . basename(__FILE__) . "?message=invalid_delete");
+        exit();
+    }
+
+    $delete_sql = "
+        DELETE FROM medical_notes
+        WHERE note_id = ?
+        LIMIT 1
+    ";
+    $delete_stmt = mysqli_prepare($conn, $delete_sql);
+
+    if (!$delete_stmt) {
+        header("Location: " . basename(__FILE__) . "?message=error");
+        exit();
+    }
+
+    mysqli_stmt_bind_param($delete_stmt, "i", $note_id);
+
+    if (mysqli_stmt_execute($delete_stmt)) {
+        header("Location: " . basename(__FILE__) . "?message=deleted");
+        exit();
+    }
+
+    header("Location: " . basename(__FILE__) . "?message=error");
+    exit();
+}
+
+/* --------------------------------------------------
    PATIENTS FOR DROPDOWN
 -------------------------------------------------- */
 $patients = [];
@@ -217,7 +315,7 @@ if ($records_result) {
         if (($row['encoder_role'] ?? '') === 'dentist') {
             $dentist_name = trim(($row['dentist_first_name'] ?? '') . ' ' . ($row['dentist_last_name'] ?? ''));
             $added_by = $dentist_name !== '' ? 'Dr. ' . $dentist_name : 'Dentist';
-        } elseif (($row['encoder_role'] ?? '') === 'staff' || ($row['encoder_role'] ?? '') === 'system_admin' || ($row['encoder_role'] ?? '') === 'admin') {
+        } elseif (in_array(($row['encoder_role'] ?? ''), ['staff', 'system_admin', 'admin'])) {
             $staff_name = trim(($row['staff_first_name'] ?? '') . ' ' . ($row['staff_last_name'] ?? ''));
             $added_by = $staff_name !== '' ? $staff_name : 'Admin Staff';
         }
@@ -425,6 +523,31 @@ include("../includes/admin-sidebar.php");
         margin-bottom: 18px;
     }
 
+    .record-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .action-btn {
+        min-width: 110px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .action-btn.edit {
+        color: #111827;
+    }
+
+    .action-btn.delete {
+        color: #dc2626;
+    }
+
     .empty-state {
         text-align: center;
         padding: 40px 20px;
@@ -552,7 +675,8 @@ include("../includes/admin-sidebar.php");
     }
 
     .btn-cancel,
-    .btn-save {
+    .btn-save,
+    .btn-delete {
         border-radius: 12px;
         padding: 12px 18px;
         font-size: 14px;
@@ -569,6 +693,12 @@ include("../includes/admin-sidebar.php");
     .btn-save {
         border: none;
         background: #0ea5a0;
+        color: #fff;
+    }
+
+    .btn-delete {
+        border: none;
+        background: #dc2626;
         color: #fff;
     }
 
@@ -648,6 +778,26 @@ include("../includes/admin-sidebar.php");
 
                         <div class="record-label">Treatment Notes</div>
                         <div class="record-value"><?php echo nl2br(htmlspecialchars($record['notes'])); ?></div>
+
+                        <div class="record-actions">
+                            <button
+                                type="button"
+                                class="action-btn edit"
+                                data-note-id="<?php echo (int)$record['note_id']; ?>"
+                                data-patient-id="<?php echo (int)$record['patient_id']; ?>"
+                                data-procedure="<?php echo htmlspecialchars($record['procedure'], ENT_QUOTES); ?>"
+                                data-notes="<?php echo htmlspecialchars($record['notes'], ENT_QUOTES); ?>"
+                                onclick="openEditRecordModal(this)"
+                            >
+                                Edit
+                            </button>
+
+                            <form method="POST" onsubmit="return confirm('Delete this medical record?');" style="display:inline;">
+                                <input type="hidden" name="delete_record" value="1">
+                                <input type="hidden" name="note_id" value="<?php echo (int)$record['note_id']; ?>">
+                                <button type="submit" class="action-btn delete">Delete</button>
+                            </form>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -711,15 +861,75 @@ include("../includes/admin-sidebar.php");
     </div>
 </div>
 
+<div class="modal-backdrop" id="editRecordModal">
+    <div class="modal-card">
+        <button class="modal-close-x" type="button" onclick="closeEditRecordModal()">&times;</button>
+
+        <h3 class="modal-title">Edit Medical Record</h3>
+        <p class="modal-subtitle">Update treatment notes and patient record details</p>
+
+        <form method="POST">
+            <input type="hidden" name="edit_record" value="1">
+            <input type="hidden" name="note_id" id="edit_note_id">
+
+            <div class="form-group">
+                <label>Select Patient</label>
+                <select name="patient_id" id="edit_patient_id" required>
+                    <option value="">Choose a patient</option>
+                    <?php foreach ($patients as $patient): ?>
+                        <option value="<?php echo (int)$patient['patient_id']; ?>">
+                            <?php echo htmlspecialchars($patient['full_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Procedure/Treatment</label>
+                <input
+                    type="text"
+                    name="procedure"
+                    id="edit_procedure"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Treatment Notes</label>
+                <textarea
+                    name="treatment_notes"
+                    id="edit_treatment_notes"
+                    required
+                ></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeEditRecordModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php if (isset($_GET['message'])): ?>
     <?php
         $toast_message = '';
         if ($_GET['message'] === 'added') {
             $toast_message = 'Medical record added successfully';
+        } elseif ($_GET['message'] === 'updated') {
+            $toast_message = 'Medical record updated successfully';
+        } elseif ($_GET['message'] === 'deleted') {
+            $toast_message = 'Medical record deleted successfully';
         } elseif ($_GET['message'] === 'invalid') {
             $toast_message = 'Please complete all required fields';
+        } elseif ($_GET['message'] === 'invalid_edit') {
+            $toast_message = 'Please complete all edit fields';
+        } elseif ($_GET['message'] === 'invalid_delete') {
+            $toast_message = 'Invalid record selected';
         } elseif ($_GET['message'] === 'patient_not_found') {
             $toast_message = 'Selected patient not found';
+        } elseif ($_GET['message'] === 'notfound') {
+            $toast_message = 'Medical record not found';
         } elseif ($_GET['message'] === 'error') {
             $toast_message = 'Something went wrong';
         }
@@ -737,7 +947,29 @@ include("../includes/admin-sidebar.php");
     const recordSearch = document.getElementById('recordSearch');
     const recordCards = document.querySelectorAll('.record-card');
     const addRecordModal = document.getElementById('addRecordModal');
+    const editRecordModal = document.getElementById('editRecordModal');
     const toastMessage = document.getElementById('toastMessage');
+
+    function openAddRecordModal() {
+        addRecordModal.classList.add('show');
+    }
+
+    function closeAddRecordModal() {
+        addRecordModal.classList.remove('show');
+    }
+
+    function openEditRecordModal(button) {
+        document.getElementById('edit_note_id').value = button.dataset.noteId || '';
+        document.getElementById('edit_patient_id').value = button.dataset.patientId || '';
+        document.getElementById('edit_procedure').value = button.dataset.procedure || '';
+        document.getElementById('edit_treatment_notes').value = button.dataset.notes || '';
+
+        editRecordModal.classList.add('show');
+    }
+
+    function closeEditRecordModal() {
+        editRecordModal.classList.remove('show');
+    }
 
     if (recordSearch) {
         recordSearch.addEventListener('input', function () {
@@ -750,18 +982,18 @@ include("../includes/admin-sidebar.php");
         });
     }
 
-    function openAddRecordModal() {
-        addRecordModal.classList.add('show');
-    }
-
-    function closeAddRecordModal() {
-        addRecordModal.classList.remove('show');
-    }
-
     if (addRecordModal) {
         addRecordModal.addEventListener('click', function (e) {
             if (e.target === addRecordModal) {
                 closeAddRecordModal();
+            }
+        });
+    }
+
+    if (editRecordModal) {
+        editRecordModal.addEventListener('click', function (e) {
+            if (e.target === editRecordModal) {
+                closeEditRecordModal();
             }
         });
     }
