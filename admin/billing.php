@@ -35,6 +35,8 @@ if(isset($_POST['pay'])){
 </head>
 <body>
 
+<?php include("../includes/navbar.php"); ?>
+
 <h2>Billing Management</h2>
 
 <!-- FORM -->
