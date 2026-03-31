@@ -37,6 +37,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <strong><?php echo htmlspecialchars($nav_full_name); ?></strong>
             <span>Patient</span>
         </div>
-        <a href="logout.php" class="logout-btn">Logout</a>
+        <a href="../auth/patient-logout.php" class="logout-btn">Logout</a>
     </div>
 </div>

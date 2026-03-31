@@ -39,6 +39,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <div class="sidebar-bottom">
         <a href="#"><span>☰</span> Collapse</a>
-        <a href="../auth/logout.php"><span>↪</span> Logout</a>
+        <a href="../auth/admin-logout.php"><span>↪</span> Logout</a>
     </div>
 </aside>
