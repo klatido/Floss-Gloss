@@ -341,8 +341,8 @@ include("../includes/admin-sidebar.php");
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="service-action.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn">✎</a>
-                                    <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');">🗑</a>
+                                    <a href="edit-service.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn" title="Edit">✎</a>
+                                    <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');" title="Delete">🗑</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
