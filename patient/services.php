@@ -1,5 +1,4 @@
 <?php
-session_start();
 include("../config/database.php");
 ?>
 
@@ -7,114 +6,69 @@ include("../config/database.php");
 <html>
 <head>
     <title>Dental Services</title>
-
-    <style>
-        body {
-            font-family: Arial;
-            background: #c7e0df;
-        }
-
-        h2, p, a {
-            text-align: center;
-        }
-
-        .container {
-            width: 90%;
-            margin: auto;
-        }
-
-        .services {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        .btn {
-            margin-top: 15px;
-            align: center;
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background: #1de0d0;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            text-align: center;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            background: #0f766e;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/style.css">
 </head>
-
 <body>
 
-<div class="container">
-    <h2>Dental Services</h2>
-    <p>Browse our comprehensive dental care services</p>
-    <div style="text-align:center;">
-        <a href="patient-dashboard.php">Go Back to Dashboard</a> 
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="logo">🦷 Floss & Gloss</div>
+
+    <div class="nav-links">
+        <a href="dashboard.php">Dashboard</a>
+        <a href="services.php" class="active">Services</a>
+        <a href="#">Profile</a>
+        <a href="#">Settings</a>
     </div>
 
-    <div class="services">
-
-        <div class="card">
-            <h3>Teeth Cleaning</h3>
-            <p>Professional dental cleaning to remove plaque and tartar buildup</p>
-            <p><b>Estimated Price:</b> ₱3,500</p>
-            <p><b>Duration:</b> 30 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
-
-        <div class="card">
-            <h3>Tooth Extraction</h3>
-            <p>Safe and painless tooth removal procedure</p>
-            <p><b>Estimated Price:</b> ₱5,000</p>
-            <p><b>Duration:</b> 45 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
-
-        <div class="card">
-            <h3>Root Canal</h3>
-            <p>Treatment to save infected or damaged tooth</p>
-            <p><b>Estimated Price:</b> ₱12,000</p>
-            <p><b>Duration:</b> 90 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
-
-        <div class="card">
-            <h3>Braces Consultation</h3>
-            <p>Initial consultation for orthodontic treatment</p>
-            <p><b>Estimated Price:</b> ₱2,000</p>
-            <p><b>Duration:</b> 30 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
-
-        <div class="card">
-            <h3>Teeth Whitening</h3>
-            <p>Professional teeth whitening for a brighter smile</p>
-            <p><b>Estimated Price:</b> ₱8,000</p>
-            <p><b>Duration:</b> 60 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
-
-        <div class="card">
-            <h3>Dental Filling</h3>
-            <p>Cavity treatment with composite resin filling</p>
-            <p><b>Estimated Price:</b> ₱4,000</p>
-            <p><b>Duration:</b> 45 mins</p>
-            <a href="#" class="btn">Book Appointment</a>
-        </div>
+    <div class="user">
+        John Smith | <a href="../auth/logout.php">Logout</a>
     </div>
 </div>
+
+<!-- MAIN -->
+<div class="container-main">
+
+    <h1>Dental Services</h1>
+    <p class="subtitle">Browse our comprehensive dental care services</p>
+
+    <!-- SEARCH (optional) -->
+    <input type="text" placeholder="🔍 Search services..." class="search-bar">
+
+    <!-- GRID -->
+    <div class="services-grid">
+
+        <?php
+        $result = mysqli_query($conn, "SELECT * FROM services");
+
+        while($row = mysqli_fetch_assoc($result)){
+        ?>
+            <div class="service-card">
+
+                <div class="card-header">
+                    <h3><?php echo $row['service_name']; ?></h3>
+                    <span class="badge">Dental</span>
+                </div>
+
+                <p class="desc">Professional dental care service</p>
+
+                <div class="price-row">
+                    <span>Estimated Price</span>
+                    <strong>₱<?php echo number_format($row['price'],2); ?></strong>
+                </div>
+
+                <div class="duration">
+                    ⏱ Duration: 30 mins
+                </div>
+
+                <a href="#" class="book-btn">Book Appointment</a>
+
+            </div>
+        <?php } ?>
+
+    </div>
+
+</div>
+
 </body>
 </html>
