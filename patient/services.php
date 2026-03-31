@@ -61,7 +61,7 @@ include("../config/database.php");
                     ⏱ Duration: 30 mins
                 </div>
 
-                <a href="#" class="book-btn">Book Appointment</a>
+             <a href="book.php?service_id=<?php echo $row['service_id']; ?>" class="book-btn">Book Appointment</a>
 
             </div>
         <?php } ?>
