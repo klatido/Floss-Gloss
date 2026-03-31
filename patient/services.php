@@ -10,7 +10,6 @@ include("../config/database.php");
 </head>
 <body>
 
-<!-- NAVBAR -->
 <div class="navbar">
     <div class="logo">🦷 Floss & Gloss</div>
 
@@ -26,22 +25,20 @@ include("../config/database.php");
     </div>
 </div>
 
-<!-- MAIN -->
 <div class="container-main">
 
     <h1>Dental Services</h1>
     <p class="subtitle">Browse our comprehensive dental care services</p>
 
-    <!-- SEARCH (optional) -->
-    <input type="text" placeholder="🔍 Search services..." class="search-bar">
+    <input type="text" placeholder=" Search services..." class="search-bar">
 
-    <!-- GRID -->
     <div class="services-grid">
 
         <?php
-        $result = mysqli_query($conn, "SELECT * FROM services");
+        $result = mysqli_query($conn, "SELECT * FROM services WHERE is_active = 1");
 
-        while($row = mysqli_fetch_assoc($result)){
+        if(mysqli_num_rows($result) > 0){
+            while($row = mysqli_fetch_assoc($result)){
         ?>
             <div class="service-card">
 
@@ -50,7 +47,9 @@ include("../config/database.php");
                     <span class="badge">Dental</span>
                 </div>
 
-                <p class="desc">Professional dental care service</p>
+                <p class="desc">
+                    <?php echo $row['description']; ?>
+                </p>
 
                 <div class="price-row">
                     <span>Estimated Price</span>
@@ -58,13 +57,20 @@ include("../config/database.php");
                 </div>
 
                 <div class="duration">
-                    ⏱ Duration: 30 mins
+                    ⏱ Duration: <?php echo $row['duration_minutes']; ?> mins
                 </div>
 
-             <a href="book.php?service_id=<?php echo $row['service_id']; ?>" class="book-btn">Book Appointment</a>
+                <a href="book.php?service_id=<?php echo $row['service_id']; ?>" class="book-btn">
+                    Book Appointment
+                </a>
 
             </div>
-        <?php } ?>
+        <?php 
+            }
+        } else {
+            echo "<p>No services available yet.</p>";
+        }
+        ?>
 
     </div>
 
