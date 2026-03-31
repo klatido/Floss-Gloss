@@ -2,14 +2,6 @@
 if (!isset($page_title)) {
     $page_title = "Admin Panel | Floss & Gloss Dental";
 }
-
-if (!isset($admin_name)) {
-    $admin_name = "Admin Staff";
-}
-
-if (!isset($admin_role)) {
-    $admin_role = "Administrator";
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,8 +15,9 @@ if (!isset($admin_role)) {
             font-family: Arial, sans-serif;
         }
 
-        body {
+        html, body {
             margin: 0;
+            padding: 0;
             background: #f5f7fb;
             color: #0f172a;
         }
@@ -33,18 +26,19 @@ if (!isset($admin_role)) {
             text-decoration: none;
         }
 
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
         .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 320px;
+            height: 100vh;
             background: #ffffff;
             border-right: 1px solid #dbe2ea;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow-y: auto;
+            z-index: 1000;
         }
 
         .sidebar-top {
@@ -106,6 +100,7 @@ if (!isset($admin_role)) {
         .sidebar-bottom {
             padding: 14px;
             border-top: 1px solid #dbe2ea;
+            background: #fff;
         }
 
         .sidebar-bottom a {
@@ -125,12 +120,14 @@ if (!isset($admin_role)) {
         }
 
         .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            margin-left: 320px;
+            min-height: 100vh;
         }
 
         .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 900;
             background: #ffffff;
             border-bottom: 1px solid #dbe2ea;
             padding: 18px 30px;
@@ -180,199 +177,11 @@ if (!isset($admin_role)) {
             padding: 24px 30px 40px;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 28px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: #ffffff;
-            border: 1px solid #dde3ea;
-            border-radius: 22px;
-            padding: 30px;
-            min-height: 170px;
-        }
-
-        .stat-card h3 {
-            margin: 0 0 28px;
-            font-size: 16px;
-            color: #3f5b7a;
-            font-weight: 700;
-            line-height: 1.4;
-        }
-
-        .stat-value {
-            font-size: 30px;
-            font-weight: 700;
-            color: #0b2454;
-            margin-bottom: 8px;
-        }
-
-        .stat-note {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 28px;
-            margin-bottom: 30px;
-        }
-
         .panel {
             background: #ffffff;
             border: 1px solid #dde3ea;
             border-radius: 22px;
             padding: 28px 30px;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .panel-header h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .panel-header p {
-            margin: 6px 0 0;
-            color: #667085;
-            font-size: 16px;
-        }
-
-        .small-btn {
-            display: inline-block;
-            padding: 12px 18px;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            font-weight: 700;
-            color: #111827;
-            background: #fff;
-        }
-
-        .request-card {
-            border: 1px solid #dbe2ea;
-            border-radius: 16px;
-            padding: 18px 16px;
-            margin-bottom: 14px;
-        }
-
-        .request-card:last-child {
-            margin-bottom: 0;
-        }
-
-        .request-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 10px;
-        }
-
-        .request-top strong {
-            font-size: 16px;
-        }
-
-        .request-service {
-            color: #344054;
-            margin: 4px 0;
-            font-size: 15px;
-        }
-
-        .request-meta {
-            color: #60708a;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 8px 14px;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .status-badge.pending {
-            background: #f3f4f6;
-            color: #111827;
-        }
-
-        .status-badge.success {
-            background: #ecfdf3;
-            color: #027a48;
-        }
-
-        .status-badge.danger {
-            background: #fef3f2;
-            color: #b42318;
-        }
-
-        .status-badge.neutral {
-            background: #f2f4f7;
-            color: #344054;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #7b8ba1;
-            padding: 60px 20px;
-        }
-
-        .empty-state .icon {
-            font-size: 52px;
-            margin-bottom: 8px;
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-
-        .action-card {
-            border: 1px solid #dbe2ea;
-            border-radius: 16px;
-            padding: 28px 20px;
-            text-align: center;
-            color: #111827;
-            background: #fff;
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .action-card .icon {
-            display: block;
-            font-size: 28px;
-            margin-bottom: 12px;
-        }
-
-        .notification-box {
-            border: 1px solid #f7d66a;
-            background: #fffbea;
-            border-radius: 16px;
-            padding: 18px;
-            color: #a15c07;
-        }
-
-        .notification-box strong {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 16px;
-        }
-
-        .notification-box span {
-            color: #b26b13;
-            font-size: 15px;
         }
 
         .site-footer {
@@ -382,41 +191,21 @@ if (!isset($admin_role)) {
             font-size: 14px;
         }
 
-        @media (max-width: 1200px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 820px) {
-            .layout {
-                flex-direction: column;
-            }
-
+        @media (max-width: 900px) {
             .sidebar {
+                position: static;
                 width: 100%;
+                height: auto;
             }
 
-            .stats-grid,
-            .quick-actions {
-                grid-template-columns: 1fr;
+            .main {
+                margin-left: 0;
             }
 
             .topbar {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 14px;
+                position: static;
             }
         }
     </style>
 </head>
 <body>
-<div class="layout">

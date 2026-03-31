@@ -19,7 +19,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="manage-appointments.php" class="<?php echo ($current_page === 'manage-appointments.php') ? 'active' : ''; ?>">
                 <span>🗓</span> Appointments
             </a>
-            <a href="manage-services.php" class="<?php echo ($current_page === 'manage-services.php') ? 'active' : ''; ?>">
+            <a href="manage-services.php" class="<?php echo ($current_page === 'manage-services.php' || $current_page === 'edit-service.php') ? 'active' : ''; ?>">
                 <span>📋</span> Services
             </a>
             <a href="manage-schedules.php" class="<?php echo ($current_page === 'manage-schedules.php') ? 'active' : ''; ?>">

@@ -12,11 +12,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-/*
-|--------------------------------------------------------------------------
-| Get logged-in admin/staff info
-|--------------------------------------------------------------------------
-*/
 $admin_name = "Admin Staff";
 $admin_role = "Administrator";
 
@@ -46,17 +41,11 @@ if ($admin_result && mysqli_num_rows($admin_result) > 0) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard stats
-|--------------------------------------------------------------------------
-*/
 $todays_appointments = 0;
 $pending_requests = 0;
 $total_patients = 0;
 $verified_revenue = 0.00;
 
-/* Today's appointments */
 $todays_sql = "
     SELECT COUNT(*) AS total
     FROM appointments
@@ -68,7 +57,6 @@ if ($todays_result) {
     $todays_appointments = mysqli_fetch_assoc($todays_result)['total'] ?? 0;
 }
 
-/* Pending requests */
 $pending_sql = "
     SELECT COUNT(*) AS total
     FROM appointments
@@ -79,7 +67,6 @@ if ($pending_result) {
     $pending_requests = mysqli_fetch_assoc($pending_result)['total'] ?? 0;
 }
 
-/* Total active patients */
 $patients_sql = "
     SELECT COUNT(*) AS total
     FROM patient_profiles pp
@@ -91,7 +78,6 @@ if ($patients_result) {
     $total_patients = mysqli_fetch_assoc($patients_result)['total'] ?? 0;
 }
 
-/* Verified revenue this month */
 $revenue_sql = "
     SELECT COALESCE(SUM(amount), 0) AS total
     FROM payments
@@ -104,17 +90,9 @@ if ($revenue_result) {
     $verified_revenue = mysqli_fetch_assoc($revenue_result)['total'] ?? 0;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Pending request cards
-|--------------------------------------------------------------------------
-*/
 $pending_list = [];
-
 $pending_list_sql = "
     SELECT
-        a.appointment_id,
-        a.appointment_code,
         a.status,
         s.service_name,
         CONCAT(pp.first_name, ' ', pp.last_name) AS patient_name,
@@ -136,16 +114,9 @@ if ($pending_list_result) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Today's schedule
-|--------------------------------------------------------------------------
-*/
 $today_list = [];
-
 $today_list_sql = "
     SELECT
-        a.appointment_id,
         a.status,
         s.service_name,
         CONCAT(pp.first_name, ' ', pp.last_name) AS patient_name,
@@ -168,44 +139,14 @@ if ($today_list_result) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Helpers
-|--------------------------------------------------------------------------
-*/
 function formatDateTimeAdmin($date, $time) {
     if (!$date) return 'Date not available';
-
     $date_text = date("n/j/Y", strtotime($date));
-
     if (!empty($time)) {
         $time_text = date("h:i A", strtotime($time));
         return $date_text . " at " . $time_text;
     }
-
     return $date_text;
-}
-
-function badgeClassAdmin($status) {
-    switch ($status) {
-        case 'approved':
-        case 'completed':
-        case 'rescheduled':
-            return 'status-badge success';
-        case 'pending':
-        case 'reschedule_requested':
-            return 'status-badge pending';
-        case 'rejected':
-        case 'cancelled':
-        case 'no_show':
-            return 'status-badge danger';
-        default:
-            return 'status-badge neutral';
-    }
-}
-
-function badgeLabelAdmin($status) {
-    return ucwords(str_replace('_', ' ', $status));
 }
 
 $page_title = "Admin Dashboard | Floss & Gloss Dental";
@@ -213,7 +154,192 @@ include("../includes/admin-header.php");
 include("../includes/admin-sidebar.php");
 ?>
 
-<main class="main">
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #dde3ea;
+        border-radius: 22px;
+        padding: 30px;
+        min-height: 170px;
+    }
+
+    .stat-card h3 {
+        margin: 0 0 28px;
+        font-size: 16px;
+        color: #3f5b7a;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .stat-value {
+        font-size: 30px;
+        font-weight: 700;
+        color: #0b2454;
+        margin-bottom: 8px;
+    }
+
+    .stat-note {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        margin-bottom: 30px;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .panel-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .panel-header p {
+        margin: 6px 0 0;
+        color: #667085;
+        font-size: 16px;
+    }
+
+    .small-btn {
+        display: inline-block;
+        padding: 12px 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        font-weight: 700;
+        color: #111827;
+        background: #fff;
+    }
+
+    .request-card {
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        padding: 18px 16px;
+        margin-bottom: 14px;
+    }
+
+    .request-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 10px;
+    }
+
+    .request-top strong {
+        font-size: 16px;
+    }
+
+    .request-service {
+        color: #344054;
+        margin: 4px 0;
+        font-size: 15px;
+    }
+
+    .request-meta {
+        color: #60708a;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: #7b8ba1;
+        padding: 60px 20px;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    .action-card {
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        padding: 28px 20px;
+        text-align: center;
+        color: #111827;
+        background: #fff;
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .action-card .icon {
+        display: block;
+        font-size: 28px;
+        margin-bottom: 12px;
+    }
+
+    .notification-box {
+        border: 1px solid #f7d66a;
+        background: #fffbea;
+        border-radius: 16px;
+        padding: 18px;
+        color: #a15c07;
+    }
+
+    .notification-box strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 16px;
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 820px) {
+        .stats-grid,
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+        }
+    }
+</style>
+
+<div class="main">
     <div class="topbar">
         <h1>Dashboard</h1>
         <div class="admin-user">
@@ -270,9 +396,7 @@ include("../includes/admin-sidebar.php");
                                     <strong><?php echo htmlspecialchars($row['patient_name']); ?></strong>
                                     <div class="request-service"><?php echo htmlspecialchars($row['service_name']); ?></div>
                                 </div>
-                                <span class="<?php echo badgeClassAdmin($row['status']); ?>">
-                                    <?php echo htmlspecialchars(badgeLabelAdmin($row['status'])); ?>
-                                </span>
+                                <span class="status-badge">Pending</span>
                             </div>
                             <div class="request-meta">
                                 <?php echo htmlspecialchars(formatDateTimeAdmin($row['appointment_date'], $row['appointment_time'])); ?>
@@ -282,10 +406,7 @@ include("../includes/admin-sidebar.php");
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="empty-state">
-                        <div class="icon">🗂</div>
-                        <div>No pending requests</div>
-                    </div>
+                    <div class="empty-state">No pending requests</div>
                 <?php endif; ?>
             </section>
 
@@ -306,9 +427,6 @@ include("../includes/admin-sidebar.php");
                                     <strong><?php echo htmlspecialchars($row['patient_name']); ?></strong>
                                     <div class="request-service"><?php echo htmlspecialchars($row['service_name']); ?></div>
                                 </div>
-                                <span class="<?php echo badgeClassAdmin($row['status']); ?>">
-                                    <?php echo htmlspecialchars(badgeLabelAdmin($row['status'])); ?>
-                                </span>
                             </div>
                             <div class="request-meta">
                                 <?php echo htmlspecialchars(formatDateTimeAdmin($row['appointment_date'], $row['appointment_time'])); ?>
@@ -318,10 +436,7 @@ include("../includes/admin-sidebar.php");
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="empty-state">
-                        <div class="icon">🗓</div>
-                        <div>No appointments today</div>
-                    </div>
+                    <div class="empty-state">No appointments today</div>
                 <?php endif; ?>
             </section>
         </div>
@@ -335,22 +450,10 @@ include("../includes/admin-sidebar.php");
             </div>
 
             <div class="quick-actions">
-                <a href="manage-appointments.php" class="action-card">
-                    <span class="icon">🗓</span>
-                    Manage Appointments
-                </a>
-                <a href="manage-services.php" class="action-card">
-                    <span class="icon">☑</span>
-                    Services
-                </a>
-                <a href="manage-patients.php" class="action-card">
-                    <span class="icon">☺</span>
-                    Patients
-                </a>
-                <a href="billing.php" class="action-card">
-                    <span class="icon">$</span>
-                    Billing
-                </a>
+                <a href="manage-appointments.php" class="action-card"><span class="icon">🗓</span>Manage Appointments</a>
+                <a href="manage-services.php" class="action-card"><span class="icon">☑</span>Services</a>
+                <a href="manage-patients.php" class="action-card"><span class="icon">☺</span>Patients</a>
+                <a href="billing.php" class="action-card"><span class="icon">$</span>Billing</a>
             </div>
         </section>
 
@@ -368,3 +471,5 @@ include("../includes/admin-sidebar.php");
         </section>
 
         <?php include("../includes/admin-footer.php"); ?>
+    </div>
+</div>
