@@ -155,113 +155,178 @@ include("../includes/admin-sidebar.php");
 ?>
 
 <style>
+    .topbar {
+        min-height: 72px;
+        background: #ffffff;
+        border-bottom: 1px solid #dbe2ea;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .topbar h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .admin-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .admin-meta {
+        text-align: right;
+    }
+
+    .admin-meta strong {
+        display: block;
+        font-size: 13px;
+    }
+
+    .admin-meta span {
+        color: #64748b;
+        font-size: 11px;
+    }
+
+    .admin-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #d1fae5;
+        color: #059669;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .content {
+        padding: 20px;
+    }
+
+    .panel {
+        background: #ffffff;
+        border: 1px solid #dde3ea;
+        border-radius: 16px;
+        padding: 20px;
+    }
+
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 28px;
-        margin-bottom: 30px;
+        gap: 18px;
+        margin-bottom: 20px;
     }
 
     .stat-card {
         background: #ffffff;
         border: 1px solid #dde3ea;
-        border-radius: 22px;
-        padding: 30px;
-        min-height: 170px;
+        border-radius: 18px;
+        padding: 22px;
+        min-height: 130px;
     }
 
     .stat-card h3 {
-        margin: 0 0 28px;
-        font-size: 16px;
+        margin: 0 0 20px;
+        font-size: 13px;
         color: #3f5b7a;
         font-weight: 700;
         line-height: 1.4;
     }
 
     .stat-value {
-        font-size: 30px;
+        font-size: 22px;
         font-weight: 700;
         color: #0b2454;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 
     .stat-note {
         color: #64748b;
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 28px;
-        margin-bottom: 30px;
+        gap: 20px;
+        margin-bottom: 20px;
     }
 
     .panel-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 14px;
+        margin-bottom: 18px;
     }
 
     .panel-header h2 {
         margin: 0;
-        font-size: 18px;
+        font-size: 15px;
     }
 
     .panel-header p {
-        margin: 6px 0 0;
+        margin: 4px 0 0;
         color: #667085;
-        font-size: 16px;
+        font-size: 12px;
     }
 
     .small-btn {
         display: inline-block;
-        padding: 12px 18px;
+        padding: 9px 14px;
         border: 1px solid #d1d5db;
-        border-radius: 12px;
+        border-radius: 10px;
         font-weight: 700;
+        font-size: 12px;
         color: #111827;
         background: #fff;
     }
 
     .request-card {
         border: 1px solid #dbe2ea;
-        border-radius: 16px;
-        padding: 18px 16px;
-        margin-bottom: 14px;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .request-card:last-child {
+        margin-bottom: 0;
     }
 
     .request-top {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 10px;
+        gap: 12px;
+        margin-bottom: 8px;
     }
 
     .request-top strong {
-        font-size: 16px;
+        font-size: 14px;
     }
 
     .request-service {
         color: #344054;
-        margin: 4px 0;
-        font-size: 15px;
+        margin: 3px 0;
+        font-size: 13px;
     }
 
     .request-meta {
         color: #60708a;
-        font-size: 14px;
-        line-height: 1.6;
+        font-size: 12px;
+        line-height: 1.5;
     }
 
     .status-badge {
         display: inline-block;
-        padding: 8px 14px;
+        padding: 6px 10px;
         border-radius: 999px;
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 700;
         white-space: nowrap;
         background: #f3f4f6;
@@ -271,44 +336,49 @@ include("../includes/admin-sidebar.php");
     .empty-state {
         text-align: center;
         color: #7b8ba1;
-        padding: 60px 20px;
+        padding: 50px 16px;
+        font-size: 14px;
     }
 
     .quick-actions {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
+        gap: 14px;
     }
 
     .action-card {
         border: 1px solid #dbe2ea;
-        border-radius: 16px;
-        padding: 28px 20px;
+        border-radius: 12px;
+        padding: 20px 14px;
         text-align: center;
         color: #111827;
         background: #fff;
         font-weight: 700;
-        font-size: 16px;
+        font-size: 13px;
     }
 
     .action-card .icon {
         display: block;
-        font-size: 28px;
-        margin-bottom: 12px;
+        font-size: 22px;
+        margin-bottom: 8px;
     }
 
     .notification-box {
         border: 1px solid #f7d66a;
         background: #fffbea;
-        border-radius: 16px;
-        padding: 18px;
+        border-radius: 12px;
+        padding: 14px;
         color: #a15c07;
     }
 
     .notification-box strong {
         display: block;
-        margin-bottom: 6px;
-        font-size: 16px;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .notification-box span {
+        font-size: 12px;
     }
 
     @media (max-width: 1200px) {
@@ -334,12 +404,15 @@ include("../includes/admin-sidebar.php");
         .topbar {
             flex-direction: column;
             align-items: flex-start;
-            gap: 14px;
+        }
+
+        .content {
+            padding: 16px;
         }
     }
 </style>
 
-<div class="main">
+<div class="main-area">
     <div class="topbar">
         <h1>Dashboard</h1>
         <div class="admin-user">
@@ -347,7 +420,7 @@ include("../includes/admin-sidebar.php");
                 <strong><?php echo htmlspecialchars($admin_name); ?></strong>
                 <span><?php echo htmlspecialchars($admin_role); ?></span>
             </div>
-            <div class="admin-avatar">⚇</div>
+            <div class="admin-avatar">👤</div>
         </div>
     </div>
 
@@ -441,7 +514,7 @@ include("../includes/admin-sidebar.php");
             </section>
         </div>
 
-        <section class="panel" style="margin-bottom: 30px;">
+        <section class="panel" style="margin-bottom: 20px;">
             <div class="panel-header">
                 <div>
                     <h2>Quick Actions</h2>
@@ -473,3 +546,22 @@ include("../includes/admin-sidebar.php");
         <?php include("../includes/admin-footer.php"); ?>
     </div>
 </div>
+
+</div>
+
+<script>
+    (function () {
+        const sidebar = document.getElementById('adminSidebar');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const storageKey = 'fg_admin_sidebar_collapsed';
+
+        if (localStorage.getItem(storageKey) === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem(storageKey, sidebar.classList.contains('collapsed'));
+        });
+    })();
+</script>

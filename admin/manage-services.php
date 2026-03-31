@@ -60,33 +60,99 @@ include("../includes/admin-sidebar.php");
 ?>
 
 <style>
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        min-height: 72px;
+        background: #ffffff;
+        border-bottom: 1px solid #dbe2ea;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .topbar h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .admin-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .admin-meta {
+        text-align: right;
+    }
+
+    .admin-meta strong {
+        display: block;
+        font-size: 13px;
+    }
+
+    .admin-meta span {
+        color: #64748b;
+        font-size: 11px;
+    }
+
+    .admin-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #d1fae5;
+        color: #059669;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .panel {
+        background: #ffffff;
+        border: 1px solid #dde3ea;
+        border-radius: 16px;
+        padding: 20px;
+    }
+
     .services-top {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         gap: 20px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
 
     .services-top h2 {
         margin: 0;
-        font-size: 28px;
+        font-size: 22px;
         color: #0b2454;
     }
 
     .services-top p {
-        margin: 8px 0 0;
+        margin: 6px 0 0;
         color: #52637a;
-        font-size: 16px;
+        font-size: 13px;
     }
 
     .add-btn {
         border: none;
         background: #0ea5a0;
         color: #fff;
-        padding: 14px 20px;
-        border-radius: 12px;
-        font-size: 16px;
+        padding: 11px 16px;
+        border-radius: 10px;
+        font-size: 13px;
         font-weight: 700;
         cursor: pointer;
     }
@@ -95,19 +161,22 @@ include("../includes/admin-sidebar.php");
         display: none;
         background: #f8fafc;
         border: 1px solid #dde3ea;
-        border-radius: 18px;
-        padding: 22px;
-        margin-bottom: 26px;
+        border-radius: 14px;
+        padding: 18px;
     }
 
     .service-form-wrap.show {
         display: block;
     }
 
+    .services-list-wrap.hide {
+        display: none;
+    }
+
     .service-form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 18px;
+        gap: 14px;
     }
 
     .form-group.full {
@@ -116,8 +185,8 @@ include("../includes/admin-sidebar.php");
 
     .form-group label {
         display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
+        margin-bottom: 6px;
+        font-size: 13px;
         font-weight: 700;
     }
 
@@ -125,28 +194,30 @@ include("../includes/admin-sidebar.php");
     .form-group textarea,
     .form-group select {
         width: 100%;
-        padding: 14px 16px;
+        padding: 12px 14px;
         border: 1px solid #dbe2ea;
-        border-radius: 12px;
-        font-size: 15px;
+        border-radius: 10px;
+        font-size: 13px;
         background: #fff;
     }
 
     .form-group textarea {
         resize: vertical;
-        min-height: 100px;
+        min-height: 90px;
     }
 
     .form-actions {
-        margin-top: 18px;
+        margin-top: 16px;
         display: flex;
-        gap: 12px;
+        gap: 10px;
     }
 
-    .btn-save, .btn-cancel {
-        padding: 13px 18px;
-        border-radius: 12px;
+    .btn-save,
+    .btn-cancel {
+        padding: 11px 16px;
+        border-radius: 10px;
         font-weight: 700;
+        font-size: 13px;
         cursor: pointer;
     }
 
@@ -162,49 +233,83 @@ include("../includes/admin-sidebar.php");
         color: #111827;
     }
 
+    .section-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .section-subtitle {
+        margin: 6px 0 18px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
     .services-table {
         width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
+    }
+
+    .services-table th,
+    .services-table td {
+        vertical-align: middle;
+    }
+
+    .services-table td {
+        padding: 16px 12px;
+        height: 72px;
+    }
+
+    .services-table th:last-child,
+    .services-table td:last-child {
+        text-align: right;
+        padding-right: 12px;
+    }
+
+    .icon-btn:last-child {
+        margin-right: 0;
     }
 
     .services-table th {
         text-align: left;
-        padding: 14px 10px;
+        padding: 12px 10px;
         border-bottom: 1px solid #dbe2ea;
+        font-size: 13px;
     }
 
     .services-table td {
-        padding: 16px 10px;
-        vertical-align: top;
+        padding: 16px 12px;
+        vertical-align: middle;
         border-bottom: 1px solid #eef2f7;
+        font-size: 13px;
     }
 
     .service-name {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
-        margin-bottom: 6px;
+        margin-bottom: 2px;
     }
 
     .service-desc {
+        font-size: 12px;
         color: #667085;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-
-    .pill {
-        display: inline-block;
-        padding: 7px 12px;
-        border: 1px solid #d1d5db;
-        border-radius: 999px;
-        font-size: 13px;
-        background: #fafafa;
+        line-height: 1.3;
+        max-height: 32px;
+        overflow: hidden;
     }
 
     .status-pill {
         display: inline-block;
-        padding: 7px 12px;
+        padding: 6px 10px;
         border-radius: 999px;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
     }
 
@@ -222,14 +327,14 @@ include("../includes/admin-sidebar.php");
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 42px;
-        height: 42px;
+        width: 38px;
+        height: 38px;
         border: 1px solid #d1d5db;
-        border-radius: 12px;
+        border-radius: 10px;
         background: #fff;
         color: #111827;
-        font-size: 18px;
-        margin-right: 8px;
+        font-size: 16px;
+        margin-right: 6px;
     }
 
     .icon-btn.delete {
@@ -242,22 +347,35 @@ include("../includes/admin-sidebar.php");
         bottom: 20px;
         background: #fff;
         border: 1px solid #dbe2ea;
-        border-radius: 14px;
-        padding: 16px 18px;
+        border-radius: 12px;
+        padding: 14px 16px;
         box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
         z-index: 2000;
+        font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+        .services-top {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .service-form-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
-<div class="main">
+<div class="main-area">
     <div class="topbar">
         <h1>Services</h1>
+
         <div class="admin-user">
             <div class="admin-meta">
                 <strong><?php echo htmlspecialchars($admin_name); ?></strong>
                 <span><?php echo htmlspecialchars($admin_role); ?></span>
             </div>
-            <div class="admin-avatar">⚇</div>
+            <div class="admin-avatar">👤</div>
         </div>
     </div>
 
@@ -267,7 +385,7 @@ include("../includes/admin-sidebar.php");
                 <h2>Services Management</h2>
                 <p>Manage dental services and procedures</p>
             </div>
-            <button type="button" class="add-btn" onclick="toggleServiceForm()">＋ Add Service</button>
+            <button type="button" class="add-btn" onclick="toggleServiceForm()">+ Add Service</button>
         </div>
 
         <section class="panel">
@@ -310,49 +428,51 @@ include("../includes/admin-sidebar.php");
                 </form>
             </div>
 
-            <h3>All Services</h3>
-            <p><?php echo count($services); ?> services available</p>
+            <div id="servicesListWrap" class="services-list-wrap">
+                <h3 class="section-title">All Services</h3>
+                <p class="section-subtitle"><?php echo count($services); ?> services available</p>
 
-            <table class="services-table">
-                <thead>
-                    <tr>
-                        <th>Service Name</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Duration</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($services) > 0): ?>
-                        <?php foreach ($services as $row): ?>
+                <div class="table-wrap">
+                    <table class="services-table">
+                        <thead>
                             <tr>
-                                <td>
-                                    <div class="service-name"><?php echo htmlspecialchars($row['service_name']); ?></div>
-                                    <div class="service-desc"><?php echo htmlspecialchars($row['description'] ?? 'No description available.'); ?></div>
-                                </td>
-                                <td><span class="pill">Dental Service</span></td>
-                                <td>₱<?php echo number_format((float)$row['price'], 0); ?></td>
-                                <td><?php echo (int)$row['duration_minutes']; ?> mins</td>
-                                <td>
-                                    <span class="status-pill <?php echo ((int)$row['is_active'] === 1) ? 'active' : 'inactive'; ?>">
-                                        <?php echo ((int)$row['is_active'] === 1) ? 'Active' : 'Inactive'; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="edit-service.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn" title="Edit">✎</a>
-                                    <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');" title="Delete">🗑</a>
-                                </td>
+                                <th>Service Name</th>
+                                <th>Price</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="6">No services found.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody>
+                            <?php if (count($services) > 0): ?>
+                                <?php foreach ($services as $row): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="service-name"><?php echo htmlspecialchars($row['service_name']); ?></div>
+                                            <div class="service-desc"><?php echo htmlspecialchars($row['description'] ?? 'No description available.'); ?></div>
+                                        </td>
+                                        <td>₱<?php echo number_format((float)$row['price'], 0); ?></td>
+                                        <td><?php echo (int)$row['duration_minutes']; ?> mins</td>
+                                        <td>
+                                            <span class="status-pill <?php echo ((int)$row['is_active'] === 1) ? 'active' : 'inactive'; ?>">
+                                                <?php echo ((int)$row['is_active'] === 1) ? 'Active' : 'Inactive'; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="edit-service.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn" title="Edit">✎</a>
+                                            <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');" title="Delete">🗑</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5">No services found.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
         <?php if (isset($_GET['success'])): ?>
@@ -365,12 +485,20 @@ include("../includes/admin-sidebar.php");
             </div>
         <?php endif; ?>
 
+        <div style="flex: 1;"></div>
+
         <?php include("../includes/admin-footer.php"); ?>
     </div>
 </div>
 
+</div>
+
 <script>
 function toggleServiceForm() {
-    document.getElementById('serviceFormWrap').classList.toggle('show');
+    const formWrap = document.getElementById('serviceFormWrap');
+    const listWrap = document.getElementById('servicesListWrap');
+
+    formWrap.classList.toggle('show');
+    listWrap.classList.toggle('hide');
 }
 </script>
