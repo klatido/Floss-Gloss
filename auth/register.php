@@ -155,10 +155,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .bottom-text a,
-        .admin-link {
+        .admin-link,
+        .back-link {
             color: #0891b2;
             font-weight: 700;
             text-decoration: none;
+        }
+
+        .bottom-text a:hover,
+        .admin-link:hover,
+        .back-link:hover {
+            text-decoration: none;
+            opacity: 0.85;
         }
 
         hr {
@@ -167,11 +175,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin: 22px 0;
         }
 
-        .admin-link-wrap {
+        .admin-link-wrap,
+        .back-link-wrap {
             text-align: center;
         }
 
-        .admin-link {
+        .admin-link,
+        .back-link {
+            display: inline-block;
             font-size: 15px;
         }
 </style>

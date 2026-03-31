@@ -149,9 +149,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .back-link {
-            color: #64748b;
+            color: #0ea5a0;
             text-decoration: none;
             font-size: 15px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #0b8f8a;
+            transform: translateX(-2px); /* subtle movement */
         }
     </style>
 </head>
