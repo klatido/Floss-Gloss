@@ -29,8 +29,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION["role"] = $user["role"];
                 $_SESSION["email"] = $user["email"];
 
+            if ($user["role"] === "dentist") {
+                header("Location: ../admin/manage-schedules.php");
+            } else {
                 header("Location: ../admin/admin-dashboard.php");
-                exit();
+            }
+            exit();
             } else {
                 $message = "Invalid password.";
             }

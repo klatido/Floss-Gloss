@@ -12,6 +12,11 @@ $canManageSchedules = hasRole(['staff']);
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 $role = $_SESSION['role'] ?? '';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$canManageSchedules) {
+    header("Location: ../auth/unauthorized.php");
+    exit();
+}
+
 /* --------------------------------------------------
    HELPERS
 -------------------------------------------------- */
@@ -51,11 +56,19 @@ function initialsFromName(string $name): string {
 -------------------------------------------------- */
 $admin_name = "Admin Staff";
 $admin_role = "Administrator";
+$current_dentist_id = 0;
 
 $admin_sql = "
-    SELECT u.role, sp.first_name, sp.last_name
+    SELECT 
+        u.role,
+        sp.first_name AS staff_first_name,
+        sp.last_name AS staff_last_name,
+        dp.first_name AS dentist_first_name,
+        dp.last_name AS dentist_last_name,
+        dp.dentist_id
     FROM users u
     LEFT JOIN staff_profiles sp ON u.user_id = sp.user_id
+    LEFT JOIN dentist_profiles dp ON u.user_id = dp.user_id
     WHERE u.user_id = ?
     LIMIT 1
 ";
@@ -67,19 +80,31 @@ if ($admin_stmt) {
 
     if ($admin_result && mysqli_num_rows($admin_result) > 0) {
         $admin_row = mysqli_fetch_assoc($admin_result);
-        $name = trim(($admin_row['first_name'] ?? '') . ' ' . ($admin_row['last_name'] ?? ''));
-        if ($name !== '') {
-            $admin_name = $name;
-        }
 
-        if (($admin_row['role'] ?? '') === 'system_admin') {
-            $admin_role = 'Administrator';
-        } elseif (($admin_row['role'] ?? '') === 'staff') {
-            $admin_role = 'Staff';
+        if (($admin_row['role'] ?? '') === 'dentist') {
+            $name = trim(($admin_row['dentist_first_name'] ?? '') . ' ' . ($admin_row['dentist_last_name'] ?? ''));
+            if ($name !== '') {
+                $admin_name = 'Dr. ' . $name;
+            }
+            $admin_role = 'Dentist';
+            $current_dentist_id = (int)($admin_row['dentist_id'] ?? 0);
         } else {
-            $admin_role = ucfirst($admin_row['role'] ?? 'Administrator');
+            $name = trim(($admin_row['staff_first_name'] ?? '') . ' ' . ($admin_row['staff_last_name'] ?? ''));
+            if ($name !== '') {
+                $admin_name = $name;
+            }
+
+            if (($admin_row['role'] ?? '') === 'system_admin') {
+                $admin_role = 'Administrator';
+            } elseif (($admin_row['role'] ?? '') === 'staff') {
+                $admin_role = 'Staff';
+            } else {
+                $admin_role = ucfirst($admin_row['role'] ?? 'Administrator');
+            }
         }
     }
+
+    mysqli_stmt_close($admin_stmt);
 }
 
 /* --------------------------------------------------
@@ -149,7 +174,7 @@ if ($dentists_result) {
 /* --------------------------------------------------
    BLOCK SELECTED DATE FOR ALL ACTIVE DENTISTS
 -------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['block_date'])) {
+if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['block_date'])) {
     $block_date = $_POST['block_date_value'] ?? $selected_date;
     $block_reason = trim($_POST['block_reason'] ?? 'Blocked by admin');
 
@@ -181,6 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['block_date'])) {
                     LIMIT 1
                 ";
                 $check_stmt = mysqli_prepare($conn, $check_sql);
+
                 if ($check_stmt) {
                     mysqli_stmt_bind_param($check_stmt, "is", $dentist_id, $block_date);
                     mysqli_stmt_execute($check_stmt);
@@ -193,13 +219,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['block_date'])) {
                             VALUES (?, ?, NULL, NULL, ?, ?)
                         ";
                         $insert_stmt = mysqli_prepare($conn, $insert_sql);
+
                         if ($insert_stmt) {
                             mysqli_stmt_bind_param($insert_stmt, "issi", $dentist_id, $block_date, $block_reason, $user_id);
                             if (mysqli_stmt_execute($insert_stmt)) {
                                 $inserted_any = true;
                             }
+                            mysqli_stmt_close($insert_stmt);
                         }
                     }
+
+                    mysqli_stmt_close($check_stmt);
                 }
             }
 
@@ -236,6 +266,8 @@ if ($blocked_stmt) {
             $blocked_dentist_ids[] = (int)$blocked_row['dentist_id'];
         }
     }
+
+    mysqli_stmt_close($blocked_stmt);
 }
 
 if (count($blocked_dentist_ids) > 0) {
@@ -253,6 +285,8 @@ foreach ($dentists as $dentist_id => $dentist) {
    DAILY APPOINTMENTS
 -------------------------------------------------- */
 $daily_appointments = [];
+$daily_stmt = null;
+$daily_result = null;
 
 if ($role === 'dentist') {
     $daily_sql = "
@@ -282,9 +316,11 @@ if ($role === 'dentist') {
         ORDER BY COALESCE(a.final_start_time, a.requested_start_time) ASC
     ";
     $daily_stmt = mysqli_prepare($conn, $daily_sql);
+
     if ($daily_stmt) {
         mysqli_stmt_bind_param($daily_stmt, "si", $selected_date, $user_id);
         mysqli_stmt_execute($daily_stmt);
+        $daily_result = mysqli_stmt_get_result($daily_stmt);
     }
 } else {
     $daily_sql = "
@@ -313,37 +349,40 @@ if ($role === 'dentist') {
         ORDER BY COALESCE(a.final_start_time, a.requested_start_time) ASC
     ";
     $daily_stmt = mysqli_prepare($conn, $daily_sql);
+
     if ($daily_stmt) {
         mysqli_stmt_bind_param($daily_stmt, "s", $selected_date);
         mysqli_stmt_execute($daily_stmt);
+        $daily_result = mysqli_stmt_get_result($daily_stmt);
+    }
+}
+
+if ($daily_result) {
+    while ($row = mysqli_fetch_assoc($daily_result)) {
+        if (trim($row['patient_name'] ?? '') === '') {
+            $row['patient_name'] = 'Patient #' . ($row['patient_id'] ?? 'N/A');
+        }
+
+        if (trim($row['dentist_name'] ?? '') === '') {
+            $row['dentist_name'] = 'Dentist #' . ($row['dentist_id'] ?? 'N/A');
+        } else {
+            $row['dentist_name'] = 'Dr. ' . trim($row['dentist_name']);
+        }
+
+        if (empty($row['service_name'])) {
+            $row['service_name'] = 'Unknown Service';
+        }
+
+        $row['display_time'] = !empty($row['final_start_time'])
+            ? safeTimeFormat($row['final_start_time'], 'h:i A')
+            : safeTimeFormat($row['requested_start_time'], 'h:i A');
+
+        $daily_appointments[] = $row;
     }
 }
 
 if ($daily_stmt) {
-
-    if ($daily_result) {
-        while ($row = mysqli_fetch_assoc($daily_result)) {
-            if (trim($row['patient_name'] ?? '') === '') {
-                $row['patient_name'] = 'Patient #' . ($row['patient_id'] ?? 'N/A');
-            }
-
-            if (trim($row['dentist_name'] ?? '') === '') {
-                $row['dentist_name'] = 'Dentist #' . ($row['dentist_id'] ?? 'N/A');
-            } else {
-                $row['dentist_name'] = 'Dr. ' . trim($row['dentist_name']);
-            }
-
-            if (empty($row['service_name'])) {
-                $row['service_name'] = 'Unknown Service';
-            }
-
-            $row['display_time'] = !empty($row['final_start_time'])
-                ? safeTimeFormat($row['final_start_time'], 'h:i A')
-                : safeTimeFormat($row['requested_start_time'], 'h:i A');
-
-            $daily_appointments[] = $row;
-        }
-    }
+    mysqli_stmt_close($daily_stmt);
 }
 
 $daily_count = count($daily_appointments);
@@ -354,35 +393,79 @@ $daily_count = count($daily_appointments);
 $selected_day_of_week = date('l', $selected_ts);
 
 $availability_map = [];
-$availability_sql = "
-    SELECT
-        availability_id,
-        dentist_id,
-        day_of_week,
-        start_time,
-        end_time,
-        slot_limit,
-        is_active
-    FROM dentist_availability
-    WHERE day_of_week = ?
-      AND is_active = 1
-    ORDER BY start_time ASC
-";
-$availability_stmt = mysqli_prepare($conn, $availability_sql);
-if ($availability_stmt) {
-    mysqli_stmt_bind_param($availability_stmt, "s", $selected_day_of_week);
-    mysqli_stmt_execute($availability_stmt);
-    $availability_result = mysqli_stmt_get_result($availability_stmt);
+$availability_stmt = null;
+$availability_result = null;
 
-    if ($availability_result) {
-        while ($row = mysqli_fetch_assoc($availability_result)) {
-            $dentist_id = (int)$row['dentist_id'];
-            if (!isset($availability_map[$dentist_id])) {
-                $availability_map[$dentist_id] = [];
-            }
-            $availability_map[$dentist_id][] = $row;
-        }
+if ($role === 'dentist' && $current_dentist_id > 0) {
+    $availability_sql = "
+        SELECT
+            availability_id,
+            dentist_id,
+            day_of_week,
+            start_time,
+            end_time,
+            slot_limit,
+            is_active
+        FROM dentist_availability
+        WHERE day_of_week = ?
+          AND is_active = 1
+          AND dentist_id = ?
+        ORDER BY start_time ASC
+    ";
+    $availability_stmt = mysqli_prepare($conn, $availability_sql);
+
+    if ($availability_stmt) {
+        mysqli_stmt_bind_param($availability_stmt, "si", $selected_day_of_week, $current_dentist_id);
+        mysqli_stmt_execute($availability_stmt);
+        $availability_result = mysqli_stmt_get_result($availability_stmt);
     }
+} else {
+    $availability_sql = "
+        SELECT
+            availability_id,
+            dentist_id,
+            day_of_week,
+            start_time,
+            end_time,
+            slot_limit,
+            is_active
+        FROM dentist_availability
+        WHERE day_of_week = ?
+          AND is_active = 1
+        ORDER BY start_time ASC
+    ";
+    $availability_stmt = mysqli_prepare($conn, $availability_sql);
+
+    if ($availability_stmt) {
+        mysqli_stmt_bind_param($availability_stmt, "s", $selected_day_of_week);
+        mysqli_stmt_execute($availability_stmt);
+        $availability_result = mysqli_stmt_get_result($availability_stmt);
+    }
+}
+
+if ($availability_result) {
+    while ($row = mysqli_fetch_assoc($availability_result)) {
+        $dentist_id = (int)$row['dentist_id'];
+        if (!isset($availability_map[$dentist_id])) {
+            $availability_map[$dentist_id] = [];
+        }
+        $availability_map[$dentist_id][] = $row;
+    }
+}
+
+if ($availability_stmt) {
+    mysqli_stmt_close($availability_stmt);
+}
+
+/* --------------------------------------------------
+   LIMIT DENTIST VIEW TO OWN CARD ONLY
+-------------------------------------------------- */
+if ($role === 'dentist' && $current_dentist_id > 0) {
+    $filtered_dentists = [];
+    if (isset($dentists[$current_dentist_id])) {
+        $filtered_dentists[$current_dentist_id] = $dentists[$current_dentist_id];
+    }
+    $dentists = $filtered_dentists;
 }
 
 /* --------------------------------------------------
@@ -946,15 +1029,15 @@ include("../includes/admin-sidebar.php");
     <div class="content">
         <div class="page-top">
             <div>
-                <h2>Schedule Management</h2>
-                <p>Manage dentist availability and time slots</p>
+                <h2><?php echo $canManageSchedules ? 'Schedule Management' : 'My Schedule'; ?></h2>
+                <p><?php echo $canManageSchedules ? 'Manage dentist availability and time slots' : 'View your assigned schedule'; ?></p>
             </div>
 
             <?php if ($canManageSchedules): ?>
-            <a href="add-time-slot.php?date=<?php echo urlencode($selected_date); ?>" class="add-slot-btn">
-                <span style="font-size:20px; line-height:1;">+</span>
-                Add Time Slot
-            </a>
+                <a href="add-time-slot.php?date=<?php echo urlencode($selected_date); ?>" class="add-slot-btn">
+                    <span style="font-size:20px; line-height:1;">+</span>
+                    Add Time Slot
+                </a>
             <?php endif; ?>
         </div>
 
@@ -1019,25 +1102,25 @@ include("../includes/admin-sidebar.php");
                 <hr class="calendar-divider">
 
                 <?php if ($canManageSchedules): ?>
-                <form method="POST" class="block-date-form">
-                    <input type="hidden" name="block_date" value="1">
-                    <input type="hidden" name="block_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
-                    <button type="submit" class="block-date-btn">🗑️&nbsp; Block Selected Date</button>
+                    <form method="POST" class="block-date-form">
+                        <input type="hidden" name="block_date" value="1">
+                        <input type="hidden" name="block_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
+                        <button type="submit" class="block-date-btn">🗑️&nbsp; Block Selected Date</button>
+                        <div class="small-note">
+                            Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
+                            <?php if ($is_selected_date_blocked): ?>
+                                — blocked
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                <?php else: ?>
                     <div class="small-note">
                         Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
                         <?php if ($is_selected_date_blocked): ?>
                             — blocked
                         <?php endif; ?>
                     </div>
-                </form>
-            <?php else: ?>
-                <div class="small-note">
-                    Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
-                    <?php if ($is_selected_date_blocked): ?>
-                        — blocked
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
             </section>
 
             <section class="panel">
@@ -1096,15 +1179,15 @@ include("../includes/admin-sidebar.php");
         </div>
 
         <section class="panel availability-panel">
-            <h3>Dentist Availability</h3>
-            <p class="panel-subtitle">Current status of all dentists</p>
+            <h3><?php echo $role === 'dentist' ? 'My Availability' : 'Dentist Availability'; ?></h3>
+            <p class="panel-subtitle">
+                <?php echo $role === 'dentist' ? 'Your time slots for the selected day' : 'Current status of all dentists'; ?>
+            </p>
 
             <div class="availability-grid">
                 <?php if (count($dentists) > 0): ?>
                     <?php foreach ($dentists as $dentist): ?>
-                        <?php
-                            $slots = $availability_map[$dentist['dentist_id']] ?? [];
-                        ?>
+                        <?php $slots = $availability_map[$dentist['dentist_id']] ?? []; ?>
                         <div class="dentist-card">
                             <div class="dentist-card-top">
                                 <div class="dentist-avatar">
