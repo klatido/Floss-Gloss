@@ -8,17 +8,9 @@ require_once '../includes/auth.php';
 
 requireClinicAccess(['staff', 'dentist']);
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/admin-login.php");
-    exit();
-}
-
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['system_admin', 'staff', 'admin'])) {
-    header("Location: ../auth/admin-login.php");
-    exit();
-}
-
-$user_id = (int)$_SESSION['user_id'];
+$canManageSchedules = hasRole(['staff']);
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+$role = $_SESSION['role'] ?? '';
 
 /* --------------------------------------------------
    HELPERS
@@ -262,36 +254,72 @@ foreach ($dentists as $dentist_id => $dentist) {
 -------------------------------------------------- */
 $daily_appointments = [];
 
-$daily_sql = "
-    SELECT
-        a.appointment_id,
-        a.patient_id,
-        a.service_id,
-        a.dentist_id,
-        a.requested_date,
-        a.requested_start_time,
-        a.requested_end_time,
-        a.final_date,
-        a.final_start_time,
-        a.final_end_time,
-        a.status,
-        a.payment_status,
-        s.service_name,
-        TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
-        TRIM(CONCAT(COALESCE(dp.first_name, ''), ' ', COALESCE(dp.last_name, ''))) AS dentist_name,
-        COALESCE(dp.specialization, 'General Dentistry') AS specialization
-    FROM appointments a
-    LEFT JOIN services s ON a.service_id = s.service_id
-    LEFT JOIN patient_profiles pp ON a.patient_id = pp.patient_id
-    LEFT JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
-    WHERE COALESCE(a.final_date, a.requested_date) = ?
-    ORDER BY COALESCE(a.final_start_time, a.requested_start_time) ASC
-";
-$daily_stmt = mysqli_prepare($conn, $daily_sql);
+if ($role === 'dentist') {
+    $daily_sql = "
+        SELECT
+            a.appointment_id,
+            a.patient_id,
+            a.service_id,
+            a.dentist_id,
+            a.requested_date,
+            a.requested_start_time,
+            a.requested_end_time,
+            a.final_date,
+            a.final_start_time,
+            a.final_end_time,
+            a.status,
+            a.payment_status,
+            s.service_name,
+            TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
+            TRIM(CONCAT(COALESCE(dp.first_name, ''), ' ', COALESCE(dp.last_name, ''))) AS dentist_name,
+            COALESCE(dp.specialization, 'General Dentistry') AS specialization
+        FROM appointments a
+        LEFT JOIN services s ON a.service_id = s.service_id
+        LEFT JOIN patient_profiles pp ON a.patient_id = pp.patient_id
+        LEFT JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
+        WHERE COALESCE(a.final_date, a.requested_date) = ?
+          AND dp.user_id = ?
+        ORDER BY COALESCE(a.final_start_time, a.requested_start_time) ASC
+    ";
+    $daily_stmt = mysqli_prepare($conn, $daily_sql);
+    if ($daily_stmt) {
+        mysqli_stmt_bind_param($daily_stmt, "si", $selected_date, $user_id);
+        mysqli_stmt_execute($daily_stmt);
+    }
+} else {
+    $daily_sql = "
+        SELECT
+            a.appointment_id,
+            a.patient_id,
+            a.service_id,
+            a.dentist_id,
+            a.requested_date,
+            a.requested_start_time,
+            a.requested_end_time,
+            a.final_date,
+            a.final_start_time,
+            a.final_end_time,
+            a.status,
+            a.payment_status,
+            s.service_name,
+            TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
+            TRIM(CONCAT(COALESCE(dp.first_name, ''), ' ', COALESCE(dp.last_name, ''))) AS dentist_name,
+            COALESCE(dp.specialization, 'General Dentistry') AS specialization
+        FROM appointments a
+        LEFT JOIN services s ON a.service_id = s.service_id
+        LEFT JOIN patient_profiles pp ON a.patient_id = pp.patient_id
+        LEFT JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
+        WHERE COALESCE(a.final_date, a.requested_date) = ?
+        ORDER BY COALESCE(a.final_start_time, a.requested_start_time) ASC
+    ";
+    $daily_stmt = mysqli_prepare($conn, $daily_sql);
+    if ($daily_stmt) {
+        mysqli_stmt_bind_param($daily_stmt, "s", $selected_date);
+        mysqli_stmt_execute($daily_stmt);
+    }
+}
+
 if ($daily_stmt) {
-    mysqli_stmt_bind_param($daily_stmt, "s", $selected_date);
-    mysqli_stmt_execute($daily_stmt);
-    $daily_result = mysqli_stmt_get_result($daily_stmt);
 
     if ($daily_result) {
         while ($row = mysqli_fetch_assoc($daily_result)) {
@@ -922,10 +950,12 @@ include("../includes/admin-sidebar.php");
                 <p>Manage dentist availability and time slots</p>
             </div>
 
+            <?php if ($canManageSchedules): ?>
             <a href="add-time-slot.php?date=<?php echo urlencode($selected_date); ?>" class="add-slot-btn">
                 <span style="font-size:20px; line-height:1;">+</span>
                 Add Time Slot
             </a>
+            <?php endif; ?>
         </div>
 
         <?php if ($message !== ''): ?>
@@ -988,6 +1018,7 @@ include("../includes/admin-sidebar.php");
 
                 <hr class="calendar-divider">
 
+                <?php if ($canManageSchedules): ?>
                 <form method="POST" class="block-date-form">
                     <input type="hidden" name="block_date" value="1">
                     <input type="hidden" name="block_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
@@ -999,6 +1030,14 @@ include("../includes/admin-sidebar.php");
                         <?php endif; ?>
                     </div>
                 </form>
+            <?php else: ?>
+                <div class="small-note">
+                    Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
+                    <?php if ($is_selected_date_blocked): ?>
+                        — blocked
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             </section>
 
             <section class="panel">

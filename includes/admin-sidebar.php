@@ -137,7 +137,8 @@ $role = currentRole();
             </div>
 
             <nav class="sidebar-nav">
-                <a href="admin-dashboard.php" class="<?php echo ($current_page === 'admin-dashboard.php') ? 'active' : ''; ?>">
+                <a href="<?php echo ($role === 'dentist') ? 'manage-schedules.php' : 'admin-dashboard.php'; ?>"
+                class="<?php echo (($current_page === 'admin-dashboard.php') || ($role === 'dentist' && $current_page === 'manage-schedules.php')) ? 'active' : ''; ?>">
                     <span class="nav-icon">◫</span> Dashboard
                 </a>
 
