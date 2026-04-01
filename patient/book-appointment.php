@@ -5,189 +5,254 @@ include("../config/database.php");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-if (!isset($_GET['service_id'])) {
-    die("No service selected.");
+if (!isset($_SESSION['user_id'])) {
+    die("Login required.");
 }
 
-$service_id = $_GET['service_id'];
-$patient_id = 1;
+$user_id = $_SESSION['user_id'];
 
-// Get service
-$result = mysqli_query($conn, "SELECT * FROM services WHERE service_id = '$service_id'");
-$service = mysqli_fetch_assoc($result);
+// GET SERVICES
+$services = mysqli_query($conn, "SELECT * FROM services WHERE is_active = 1");
 
-if (!$service) {
-    die("Invalid service.");
-}
+// GET DENTISTS
+$dentists = mysqli_query($conn, "SELECT * FROM dentist_profiles WHERE is_active = 1");
 
-// Handle booking
+// HANDLE BOOKING
 if (isset($_POST['book'])) {
-    $date = $_POST['appointment_date'];
 
-    $insert = mysqli_query($conn, "INSERT INTO appointments 
-        (patient_id, service_id, appointment_date, status)
-        VALUES ('$patient_id', '$service_id', '$date', 'pending')");
+    $service_id = $_POST['service_id'];
+    $dentist_id = $_POST['dentist_id'];
+    $date = $_POST['date'];
+    $time = $_POST['time'];
 
-    if ($insert) {
-        header("Location: services.php?success=1");
-        exit();
-    } else {
-        echo mysqli_error($conn);
-    }
+    $p = mysqli_query($conn, "SELECT patient_id FROM patient_profiles WHERE user_id='$user_id'");
+    $patient = mysqli_fetch_assoc($p);
+
+    $patient_id = $patient['patient_id'];
+
+    $end_time = date('H:i:s', strtotime($time . ' +1 hour'));
+    $code = "APP-" . time();
+
+    mysqli_query($conn, "INSERT INTO appointments
+    (appointment_code, patient_id, service_id, dentist_id,
+    requested_date, requested_start_time, requested_end_time,
+    status, created_by_patient)
+
+    VALUES
+    ('$code','$patient_id','$service_id','$dentist_id',
+    '$date','$time','$end_time','pending','$user_id')");
+
+    header("Location: patient-dashboard.php?success=1");
+    exit();
 }
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Book Appointment</title>
+<title>Book Appointment</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #f5f7fb;
-        }
+<style>
+body {
+    margin:0;
+    font-family: Arial;
+    background:#f5f7fb;
+}
 
-        /* TOPBAR (same style) */
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #dbe2ea;
-            padding: 15px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* NAVBAR */
+.navbar {
+    background: #fff;
+    border-bottom: 1px solid #dbe2ea;
+    padding: 14px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        .topbar h1 {
-            font-size: 18px;
-            margin: 0;
-        }
+.logo {
+    font-weight: 700;
+    font-size: 16px;
+    color: #0b2454;
+}
 
-        /* CONTENT */
-        .container {
-            padding: 30px;
-        }
+.nav-links a {
+    text-decoration: none;
+    color: #334155;
+    font-size: 14px;
+    margin-left: 20px;
+    font-weight: 500;
+}
 
-        .panel {
-            max-width: 500px;
-            margin: auto;
-            background: #fff;
-            border: 1px solid #dde3ea;
-            border-radius: 16px;
-            padding: 25px;
-        }
+.nav-links a:hover {
+    color: #0ea5a0;
+}
 
-        .title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #0b2454;
-            margin-bottom: 10px;
-        }
+/* LAYOUT */
+.container {
+    display:flex;
+    gap:20px;
+    padding:24px;
+}
 
-        .subtitle {
-            font-size: 13px;
-            color: #52637a;
-            margin-bottom: 20px;
-        }
+/* PANELS */
+.panel {
+    background:#fff;
+    border:1px solid #dde3ea;
+    border-radius:18px;
+    padding:22px;
+}
 
-        .service-box {
-            background: #f8fafc;
-            border: 1px solid #dde3ea;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
+.left { flex:2; }
+.right { flex:1; }
 
-        .service-name {
-            font-weight: 700;
-            font-size: 15px;
-        }
+/* FORM */
+label {
+    font-size:13px;
+    font-weight:700;
+    display:block;
+    margin-top:12px;
+}
 
-        .service-meta {
-            font-size: 13px;
-            color: #64748b;
-        }
+select, input {
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #dbe2ea;
+    margin-top:6px;
+    background:#f8fafc;
+}
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+/* BUTTON */
+.btn {
+    width:100%;
+    padding:12px;
+    background:#0ea5a0;
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    margin-top:18px;
+    font-weight:700;
+    cursor:pointer;
+}
 
-        label {
-            font-size: 13px;
-            font-weight: 700;
-        }
+/* SUMMARY */
+.summary-item {
+    margin-bottom:14px;
+}
 
-        input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #dbe2ea;
-            margin-top: 6px;
-        }
+.summary-item span {
+    display:block;
+    font-size:13px;
+    color:#64748b;
+}
 
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background: #0ea5a0;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-        }
+.summary-item strong {
+    font-size:15px;
+}
+</style>
 
-        .btn:hover {
-            background: #0c8f8a;
-        }
+<script>
+function updateSummary() {
+    let s = document.getElementById("service");
+    let d = document.getElementById("dentist");
 
-        .back {
-            display: inline-block;
-            margin-bottom: 15px;
-            font-size: 13px;
-            color: #0ea5a0;
-            text-decoration: none;
-        }
-    </style>
+    document.getElementById("sum_service").innerText =
+        s.options[s.selectedIndex].text;
+
+    document.getElementById("sum_dentist").innerText =
+        d.options[d.selectedIndex].text;
+
+    document.getElementById("sum_date").innerText =
+        document.getElementById("date").value;
+
+    document.getElementById("sum_time").innerText =
+        document.getElementById("time").value;
+}
+</script>
+
 </head>
 
 <body>
 
-<div class="topbar">
-    <h1>Book Appointment</h1>
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="logo">Floss & Gloss</div>
+    <div class="nav-links">
+        <a href="patient-dashboard.php">Dashboard</a>
+        <a href="services.php">Services</a>
+        <a href="profile.php">Profile</a>
+        <a href="settings.php">Settings</a>
+        <a href="../auth/logout.php">Logout</a>
+    </div>
 </div>
 
 <div class="container">
 
-    <div class="panel">
+<!-- LEFT PANEL -->
+<div class="panel left">
 
-        <a href="services.php" class="back">← Back to Services</a>
+<h3>Appointment Details</h3>
 
-        <div class="title">Confirm Appointment</div>
-        <div class="subtitle">Fill in the details below</div>
+<form method="POST">
 
-        <div class="service-box">
-            <div class="service-name"><?php echo $service['service_name']; ?></div>
-            <div class="service-meta">
-                ₱<?php echo number_format($service['price']); ?> • 
-                <?php echo $service['duration_minutes']; ?> mins
-            </div>
-        </div>
+<label>Select Service</label>
+<select name="service_id" id="service" onchange="updateSummary()" required>
+<option value="">Choose service</option>
+<?php while($s = mysqli_fetch_assoc($services)) { ?>
+<option value="<?= $s['service_id'] ?>">
+<?= $s['service_name'] ?> - ₱<?= number_format($s['price']) ?>
+</option>
+<?php } ?>
+</select>
 
-        <form method="POST">
+<label>Select Dentist</label>
+<select name="dentist_id" id="dentist" onchange="updateSummary()" required>
+<option value="">Choose dentist</option>
+<?php while($d = mysqli_fetch_assoc($dentists)) { ?>
+<option value="<?= $d['dentist_id'] ?>">
+Dr. <?= $d['first_name'] ?> <?= $d['last_name'] ?>
+</option>
+<?php } ?>
+</select>
 
-            <div class="form-group">
-                <label>Select Date & Time</label>
-                <input type="datetime-local" name="appointment_date" required>
-            </div>
+<label>Date</label>
+<input type="date" name="date" id="date" onchange="updateSummary()" required>
 
-            <button type="submit" name="book" class="btn">
-                Confirm Booking
-            </button>
+<label>Time</label>
+<input type="time" name="time" id="time" onchange="updateSummary()" required>
 
-        </form>
+<button class="btn" name="book">Submit Appointment Request</button>
 
-    </div>
+</form>
+
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="panel right">
+
+<h3>Appointment Summary</h3>
+
+<div class="summary-item">
+<span>Service</span>
+<strong id="sum_service">-</strong>
+</div>
+
+<div class="summary-item">
+<span>Dentist</span>
+<strong id="sum_dentist">-</strong>
+</div>
+
+<div class="summary-item">
+<span>Date</span>
+<strong id="sum_date">-</strong>
+</div>
+
+<div class="summary-item">
+<span>Time</span>
+<strong id="sum_time">-</strong>
+</div>
+
+</div>
 
 </div>
 
