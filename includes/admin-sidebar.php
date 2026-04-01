@@ -166,22 +166,8 @@ $role = currentRole();
                         <span class="nav-icon">▭</span> Billing
                     </a>
 
-                    <a href="manage-dentists.php" class="<?php echo ($current_page === 'manage-dentists.php') ? 'active' : ''; ?>">
-                        <span class="nav-icon">🦷</span> Dentists
-                    </a>
-
                     <a href="manage-users.php" class="<?php echo ($current_page === 'manage-users.php') ? 'active' : ''; ?>">
                         <span class="nav-icon">👤</span> Users
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($role === 'dentist'): ?>
-                    <a href="medical-records.php" class="<?php echo ($current_page === 'medical-records.php') ? 'active' : ''; ?>">
-                        <span class="nav-icon">🗎</span> Medical Records
-                    </a>
-
-                    <a href="dentist-schedule.php" class="<?php echo ($current_page === 'dentist-schedule.php') ? 'active' : ''; ?>">
-                        <span class="nav-icon">🦷</span> My Schedule
                     </a>
                 <?php endif; ?>
             </nav>
