@@ -2,6 +2,11 @@
 session_start();
 include("../config/database.php");
 
+require_once '../config/database.php';
+require_once '../includes/auth.php';
+
+requireClinicAccess(['staff']);
+
 if($_SESSION['role'] != 'admin'){
     header("Location: ../auth/login.php");
 }
