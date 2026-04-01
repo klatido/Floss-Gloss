@@ -141,7 +141,7 @@ $role = currentRole();
                     <span class="nav-icon">◫</span> Dashboard
                 </a>
 
-                <?php if (hasRole(['staff'])): ?>
+                <?php if ($role === 'system_admin' || $role === 'staff'): ?>
                     <a href="manage-appointments.php" class="<?php echo ($current_page === 'manage-appointments.php') ? 'active' : ''; ?>">
                         <span class="nav-icon">🗓</span> Appointments
                     </a>
@@ -168,6 +168,16 @@ $role = currentRole();
 
                     <a href="manage-users.php" class="<?php echo ($current_page === 'manage-users.php') ? 'active' : ''; ?>">
                         <span class="nav-icon">👤</span> Users
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($role === 'dentist'): ?>
+                    <a href="manage-schedules.php" class="<?php echo ($current_page === 'manage-schedules.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">◔</span> Schedules
+                    </a>
+
+                    <a href="medical-records.php" class="<?php echo ($current_page === 'medical-records.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🗎</span> Medical Records
                     </a>
                 <?php endif; ?>
             </nav>

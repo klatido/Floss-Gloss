@@ -9,27 +9,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST["password"];
 
     $query = "SELECT * FROM users 
-              WHERE email = '$email' 
-              AND role IN ('staff', 'system_admin') 
-              AND account_status = 'active'";
+              WHERE email = ? 
+              AND role IN ('staff', 'system_admin', 'dentist') 
+              AND account_status = 'active'
+              LIMIT 1";
 
-    $result = mysqli_query($conn, $query);
+    $stmt = mysqli_prepare($conn, $query);
 
-    if ($result && mysqli_num_rows($result) == 1) {
-        $user = mysqli_fetch_assoc($result);
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "s", $email);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
-        if (password_verify($password, $user["password_hash"])) {
-            $_SESSION["user_id"] = $user["user_id"];
-            $_SESSION["role"] = $user["role"];
-            $_SESSION["email"] = $user["email"];
+        if ($result && mysqli_num_rows($result) == 1) {
+            $user = mysqli_fetch_assoc($result);
 
-            header("Location: ../admin/admin-dashboard.php");
-            exit();
+            if (password_verify($password, $user["password_hash"])) {
+                $_SESSION["user_id"] = $user["user_id"];
+                $_SESSION["role"] = $user["role"];
+                $_SESSION["email"] = $user["email"];
+
+                header("Location: ../admin/admin-dashboard.php");
+                exit();
+            } else {
+                $message = "Invalid password.";
+            }
         } else {
-            $message = "Invalid password.";
+            $message = "Admin account not found or inactive.";
         }
     } else {
-        $message = "Admin account not found or inactive.";
+        $message = "Something went wrong. Please try again.";
     }
 }
 ?>
@@ -158,7 +167,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .back-link:hover {
             color: #0b8f8a;
-            transform: translateX(-2px); /* subtle movement */
+            transform: translateX(-2px);
         }
     </style>
 </head>
@@ -169,7 +178,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="subtitle">Floss &amp; Gloss Dental Management</div>
 
         <?php if (!empty($message)) : ?>
-            <div class="message"><?php echo $message; ?></div>
+            <div class="message"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
         <form method="POST">

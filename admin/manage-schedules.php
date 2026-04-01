@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 require_once '../config/database.php';
 require_once '../includes/auth.php';
 
-requireClinicAccess(['staff']);
+requireClinicAccess(['staff', 'dentist']);
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../auth/admin-login.php");
