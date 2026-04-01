@@ -11,13 +11,29 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// GET SERVICES
+/* =========================
+   GET USER NAME (NEW)
+========================= */
+$user_query = mysqli_query($conn, "
+SELECT first_name, last_name 
+FROM patient_profiles 
+WHERE user_id = '$user_id'
+");
+$user = mysqli_fetch_assoc($user_query);
+
+/* =========================
+   GET SERVICES
+========================= */
 $services = mysqli_query($conn, "SELECT * FROM services WHERE is_active = 1");
 
-// GET DENTISTS
+/* =========================
+   GET DENTISTS
+========================= */
 $dentists = mysqli_query($conn, "SELECT * FROM dentist_profiles WHERE is_active = 1");
 
-// HANDLE BOOKING
+/* =========================
+   HANDLE BOOKING
+========================= */
 if (isset($_POST['book'])) {
 
     $service_id = $_POST['service_id'];
@@ -27,7 +43,6 @@ if (isset($_POST['book'])) {
 
     $p = mysqli_query($conn, "SELECT patient_id FROM patient_profiles WHERE user_id='$user_id'");
     $patient = mysqli_fetch_assoc($p);
-
     $patient_id = $patient['patient_id'];
 
     $end_time = date('H:i:s', strtotime($time . ' +1 hour'));
@@ -59,42 +74,76 @@ body {
     background:#f5f7fb;
 }
 
-/* NAVBAR */
+/* ================= NAVBAR ================= */
 .navbar {
-    background: #fff;
-    border-bottom: 1px solid #dbe2ea;
-    padding: 14px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 30px;
+    background:#fff;
+    border-bottom:1px solid #dde3ea;
 }
 
-.logo {
-    font-weight: 700;
-    font-size: 16px;
-    color: #0b2454;
+.nav-left {
+    display:flex;
+    align-items:center;
+    gap:10px;
 }
 
-.nav-links a {
-    text-decoration: none;
-    color: #334155;
-    font-size: 14px;
-    margin-left: 20px;
-    font-weight: 500;
+.logo-box {
+    width:40px;
+    height:40px;
+    background:linear-gradient(135deg,#0ea5a0,#2563eb);
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
 }
 
-.nav-links a:hover {
-    color: #0ea5a0;
+.brand span {
+    font-size:12px;
+    color:#64748b;
 }
 
-/* LAYOUT */
+.nav-center a {
+    margin:0 10px;
+    text-decoration:none;
+    color:#334155;
+    padding:8px 14px;
+    border-radius:10px;
+}
+
+.nav-center a:hover {
+    background:#e2e8f0;
+}
+
+.nav-right {
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.user span {
+    font-size:12px;
+    color:#64748b;
+}
+
+.logout {
+    border:1px solid #dde3ea;
+    padding:6px 12px;
+    border-radius:10px;
+    text-decoration:none;
+    color:#334155;
+}
+
+/* ================= LAYOUT ================= */
 .container {
     display:flex;
     gap:20px;
     padding:24px;
 }
 
-/* PANELS */
 .panel {
     background:#fff;
     border:1px solid #dde3ea;
@@ -105,49 +154,85 @@ body {
 .left { flex:2; }
 .right { flex:1; }
 
-/* FORM */
+/* ================= FORM ================= */
 label {
+    font-weight:600;
     font-size:13px;
-    font-weight:700;
-    display:block;
     margin-top:12px;
+    display:block;
 }
 
 select, input {
     width:100%;
     padding:12px;
     border-radius:12px;
-    border:1px solid #dbe2ea;
-    margin-top:6px;
+    border:1px solid #dde3ea;
     background:#f8fafc;
+    margin-top:6px;
 }
 
-/* BUTTON */
+/* ================= BUTTON ================= */
 .btn {
     width:100%;
-    padding:12px;
+    padding:14px;
     background:#0ea5a0;
     color:#fff;
     border:none;
     border-radius:12px;
-    margin-top:18px;
-    font-weight:700;
+    margin-top:20px;
+    font-weight:bold;
+}
+
+/* ================= CALENDAR ================= */
+.calendar-box {
+    background:#f8fafc;
+    border:1px solid #dde3ea;
+    border-radius:16px;
+    padding:15px;
+    margin-top:10px;
+}
+
+.calendar-header {
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:10px;
+    font-weight:bold;
+}
+
+.calendar-grid {
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:10px;
+}
+
+.day {
+    padding:12px;
+    text-align:center;
+    border-radius:10px;
     cursor:pointer;
 }
 
-/* SUMMARY */
+.day:hover {
+    background:#e2f7f6;
+}
+
+.day.selected {
+    background:#0ea5a0;
+    color:#fff;
+}
+
+/* ================= SUMMARY ================= */
 .summary-item {
     margin-bottom:14px;
 }
 
 .summary-item span {
-    display:block;
     font-size:13px;
     color:#64748b;
 }
 
 .summary-item strong {
-    font-size:15px;
+    display:block;
 }
 </style>
 
@@ -157,16 +242,16 @@ function updateSummary() {
     let d = document.getElementById("dentist");
 
     document.getElementById("sum_service").innerText =
-        s.options[s.selectedIndex].text;
+        s.options[s.selectedIndex]?.text || "-";
 
     document.getElementById("sum_dentist").innerText =
-        d.options[d.selectedIndex].text;
+        d.options[d.selectedIndex]?.text || "-";
 
     document.getElementById("sum_date").innerText =
-        document.getElementById("date").value;
+        document.getElementById("date").value || "-";
 
     document.getElementById("sum_time").innerText =
-        document.getElementById("time").value;
+        document.getElementById("time").value || "-";
 }
 </script>
 
@@ -176,19 +261,35 @@ function updateSummary() {
 
 <!-- NAVBAR -->
 <div class="navbar">
-    <div class="logo">Floss & Gloss</div>
-    <div class="nav-links">
+
+    <div class="nav-left">
+        <div class="logo-box">🦷</div>
+        <div class="brand">
+            <strong>Floss & Gloss</strong><br>
+            <span>Dental Care</span>
+        </div>
+    </div>
+
+    <div class="nav-center">
         <a href="patient-dashboard.php">Dashboard</a>
         <a href="services.php">Services</a>
         <a href="profile.php">Profile</a>
         <a href="settings.php">Settings</a>
-        <a href="../auth/logout.php">Logout</a>
     </div>
+
+    <div class="nav-right">
+        <div class="user">
+            <strong><?= $user['first_name'] . ' ' . $user['last_name'] ?></strong><br>
+            <span>Patient</span>
+        </div>
+        <a href="../auth/logout.php" class="logout">Logout</a>
+    </div>
+
 </div>
 
 <div class="container">
 
-<!-- LEFT PANEL -->
+<!-- LEFT -->
 <div class="panel left">
 
 <h3>Appointment Details</h3>
@@ -215,11 +316,23 @@ Dr. <?= $d['first_name'] ?> <?= $d['last_name'] ?>
 <?php } ?>
 </select>
 
-<label>Date</label>
-<input type="date" name="date" id="date" onchange="updateSummary()" required>
+<input type="hidden" name="date" id="date">
+<input type="hidden" name="time" id="time">
 
-<label>Time</label>
-<input type="time" name="time" id="time" onchange="updateSummary()" required>
+<label>Preferred Date</label>
+<div class="calendar-box">
+    <div class="calendar-header">
+        <button type="button" onclick="prevMonth()">‹</button>
+        <span id="monthYear"></span>
+        <button type="button" onclick="nextMonth()">›</button>
+    </div>
+    <div class="calendar-grid" id="calendar"></div>
+</div>
+
+<label>Preferred Time</label>
+<select id="time_select" onchange="selectTime()" required>
+<option value="">Choose a time slot</option>
+</select>
 
 <button class="btn" name="book">Submit Appointment Request</button>
 
@@ -227,7 +340,7 @@ Dr. <?= $d['first_name'] ?> <?= $d['last_name'] ?>
 
 </div>
 
-<!-- RIGHT PANEL -->
+<!-- RIGHT -->
 <div class="panel right">
 
 <h3>Appointment Summary</h3>
@@ -255,6 +368,94 @@ Dr. <?= $d['first_name'] ?> <?= $d['last_name'] ?>
 </div>
 
 </div>
+
+<script>
+let current = new Date();
+
+function renderCalendar() {
+    let cal = document.getElementById("calendar");
+    cal.innerHTML = "";
+
+    let y = current.getFullYear();
+    let m = current.getMonth();
+
+    document.getElementById("monthYear").innerText =
+        current.toLocaleString("default", { month:"long", year:"numeric" });
+
+    let firstDay = new Date(y, m, 1).getDay();
+    let totalDays = new Date(y, m+1, 0).getDate();
+
+    const daysHeader = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+    daysHeader.forEach(day => {
+        let div = document.createElement("div");
+        div.innerHTML = "<strong>"+day+"</strong>";
+        div.style.textAlign="center";
+        div.style.fontSize="12px";
+        div.style.color="#64748b";
+        cal.appendChild(div);
+    });
+
+    for(let i=0;i<firstDay;i++){
+        cal.appendChild(document.createElement("div"));
+    }
+
+    for(let d=1; d<=totalDays; d++) {
+        let div = document.createElement("div");
+        div.className="day";
+        div.innerText=d;
+
+        let date = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+        div.onclick = () => {
+            document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"));
+            div.classList.add("selected");
+
+            document.getElementById("date").value = date;
+
+            loadTimeSlots();
+            updateSummary();
+        };
+
+        cal.appendChild(div);
+    }
+}
+
+function loadTimeSlots() {
+    let select = document.getElementById("time_select");
+    select.innerHTML = "<option>Select time</option>";
+
+    let hours = [9,10,11,12,13,14,15,16,17];
+
+    hours.forEach(h=>{
+        let time = `${String(h).padStart(2,'0')}:00`;
+
+        let opt = document.createElement("option");
+        opt.value = time;
+        opt.text = time;
+
+        select.appendChild(opt);
+    });
+}
+
+function selectTime() {
+    document.getElementById("time").value =
+        document.getElementById("time_select").value;
+
+    updateSummary();
+}
+
+function prevMonth() {
+    current.setMonth(current.getMonth()-1);
+    renderCalendar();
+}
+
+function nextMonth() {
+    current.setMonth(current.getMonth()+1);
+    renderCalendar();
+}
+
+renderCalendar();
+</script>
 
 </body>
 </html>
