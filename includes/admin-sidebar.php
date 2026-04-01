@@ -1,5 +1,8 @@
 <?php
+require_once '../includes/auth.php';
+
 $current_page = basename($_SERVER['PHP_SELF']);
+$role = currentRole();
 ?>
 
 <style>
@@ -29,13 +32,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 72px;
-    padding: 0 18px;
-    border-bottom: 1px solid #dbe2ea;
-}
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 72px;
+        padding: 0 18px;
+        border-bottom: 1px solid #dbe2ea;
+    }
 
     .brand-logo {
         width: 36px;
@@ -78,6 +81,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         color: #111827;
         font-size: 13px;
         font-weight: 600;
+        text-decoration: none;
     }
 
     .sidebar-nav a:hover,
@@ -102,12 +106,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .main-area {
-    flex: 1;
-    min-width: 0;
-    margin-left: 240px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        margin-left: 240px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
     }
 
     @media (max-width: 820px) {
@@ -137,29 +141,49 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="nav-icon">◫</span> Dashboard
                 </a>
 
-                <a href="manage-appointments.php" class="<?php echo ($current_page === 'manage-appointments.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">🗓</span> Appointments
-                </a>
+                <?php if (hasRole(['staff'])): ?>
+                    <a href="manage-appointments.php" class="<?php echo ($current_page === 'manage-appointments.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🗓</span> Appointments
+                    </a>
 
-                <a href="manage-services.php" class="<?php echo ($current_page === 'manage-services.php' || $current_page === 'edit-service.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">📋</span> Services
-                </a>
+                    <a href="manage-services.php" class="<?php echo ($current_page === 'manage-services.php' || $current_page === 'edit-service.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">📋</span> Services
+                    </a>
 
-                <a href="manage-schedules.php" class="<?php echo ($current_page === 'manage-schedules.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">◔</span> Schedules
-                </a>
+                    <a href="manage-schedules.php" class="<?php echo ($current_page === 'manage-schedules.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">◔</span> Schedules
+                    </a>
 
-                <a href="manage-patients.php" class="<?php echo ($current_page === 'manage-patients.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">☺</span> Patients
-                </a>
+                    <a href="manage-patients.php" class="<?php echo ($current_page === 'manage-patients.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">☺</span> Patients
+                    </a>
 
-                <a href="medical-records.php" class="<?php echo ($current_page === 'medical-records.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">🗎</span> Medical Records
-                </a>
+                    <a href="medical-records.php" class="<?php echo ($current_page === 'medical-records.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🗎</span> Medical Records
+                    </a>
 
-                <a href="manage-billing.php" class="<?php echo ($current_page === 'manage-billing.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">▭</span> Billing
-                </a>
+                    <a href="manage-billing.php" class="<?php echo ($current_page === 'manage-billing.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">▭</span> Billing
+                    </a>
+
+                    <a href="manage-dentists.php" class="<?php echo ($current_page === 'manage-dentists.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🦷</span> Dentists
+                    </a>
+
+                    <a href="manage-users.php" class="<?php echo ($current_page === 'manage-users.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">👤</span> Users
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($role === 'dentist'): ?>
+                    <a href="medical-records.php" class="<?php echo ($current_page === 'medical-records.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🗎</span> Medical Records
+                    </a>
+
+                    <a href="dentist-schedule.php" class="<?php echo ($current_page === 'dentist-schedule.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">🦷</span> My Schedule
+                    </a>
+                <?php endif; ?>
             </nav>
         </div>
 

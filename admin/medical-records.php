@@ -9,18 +9,13 @@ require_once '../includes/auth.php';
 requireClinicAccess(['staff', 'dentist']);
 
 $canManageRecords = hasRole(['staff']);
+$user_id = (int)($_SESSION['user_id'] ?? 0);
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/admin-login.php");
+/* dentists are view-only */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$canManageRecords) {
+    header("Location: ../auth/unauthorized.php");
     exit();
 }
-
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['system_admin', 'staff', 'admin', 'dentist'])) {
-    header("Location: ../auth/admin-login.php");
-    exit();
-}
-
-$user_id = (int)$_SESSION['user_id'];
 
 /* --------------------------------------------------
    HELPERS
@@ -83,7 +78,7 @@ if ($admin_stmt) {
 /* --------------------------------------------------
    ADD MEDICAL RECORD
 -------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record']) && $canManageRecords) {
     $patient_id = isset($_POST['patient_id']) ? (int)$_POST['patient_id'] : 0;
     $procedure = trim($_POST['procedure'] ?? '');
     $treatment_notes = trim($_POST['treatment_notes'] ?? '');
@@ -152,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record'])) {
 /* --------------------------------------------------
    EDIT MEDICAL RECORD
 -------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record']) && $canManageRecords) {
     $note_id = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
     $patient_id = isset($_POST['patient_id']) ? (int)$_POST['patient_id'] : 0;
     $procedure = trim($_POST['procedure'] ?? '');
@@ -216,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record'])) {
 /* --------------------------------------------------
    DELETE MEDICAL RECORD
 -------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_record'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_record']) && $canManageRecords) {
     $note_id = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
 
     if ($note_id <= 0) {
@@ -680,8 +675,7 @@ include("../includes/admin-sidebar.php");
     }
 
     .btn-cancel,
-    .btn-save,
-    .btn-delete {
+    .btn-save {
         border-radius: 12px;
         padding: 12px 18px;
         font-size: 14px;
@@ -698,12 +692,6 @@ include("../includes/admin-sidebar.php");
     .btn-save {
         border: none;
         background: #0ea5a0;
-        color: #fff;
-    }
-
-    .btn-delete {
-        border: none;
-        background: #dc2626;
         color: #fff;
     }
 
@@ -740,13 +728,15 @@ include("../includes/admin-sidebar.php");
         <div class="page-top">
             <div>
                 <h2>Medical Records</h2>
-                <p>View and manage patient medical history</p>
+                <p><?php echo $canManageRecords ? 'View and manage patient medical history' : 'View patient medical history'; ?></p>
             </div>
 
-            <button type="button" class="add-btn" onclick="openAddRecordModal()">
-                <span style="font-size:20px; line-height:1;">+</span>
-                Add Record
-            </button>
+            <?php if ($canManageRecords): ?>
+                <button type="button" class="add-btn" onclick="openAddRecordModal()">
+                    <span style="font-size:20px; line-height:1;">+</span>
+                    Add Record
+                </button>
+            <?php endif; ?>
         </div>
 
         <section class="panel">
@@ -784,25 +774,27 @@ include("../includes/admin-sidebar.php");
                         <div class="record-label">Treatment Notes</div>
                         <div class="record-value"><?php echo nl2br(htmlspecialchars($record['notes'])); ?></div>
 
-                        <div class="record-actions">
-                            <button
-                                type="button"
-                                class="action-btn edit"
-                                data-note-id="<?php echo (int)$record['note_id']; ?>"
-                                data-patient-id="<?php echo (int)$record['patient_id']; ?>"
-                                data-procedure="<?php echo htmlspecialchars($record['procedure'], ENT_QUOTES); ?>"
-                                data-notes="<?php echo htmlspecialchars($record['notes'], ENT_QUOTES); ?>"
-                                onclick="openEditRecordModal(this)"
-                            >
-                                Edit
-                            </button>
+                        <?php if ($canManageRecords): ?>
+                            <div class="record-actions">
+                                <button
+                                    type="button"
+                                    class="action-btn edit"
+                                    data-note-id="<?php echo (int)$record['note_id']; ?>"
+                                    data-patient-id="<?php echo (int)$record['patient_id']; ?>"
+                                    data-procedure="<?php echo htmlspecialchars($record['procedure'], ENT_QUOTES); ?>"
+                                    data-notes="<?php echo htmlspecialchars($record['notes'], ENT_QUOTES); ?>"
+                                    onclick="openEditRecordModal(this)"
+                                >
+                                    Edit
+                                </button>
 
-                            <form method="POST" onsubmit="return confirm('Delete this medical record?');" style="display:inline;">
-                                <input type="hidden" name="delete_record" value="1">
-                                <input type="hidden" name="note_id" value="<?php echo (int)$record['note_id']; ?>">
-                                <button type="submit" class="action-btn delete">Delete</button>
-                            </form>
-                        </div>
+                                <form method="POST" onsubmit="return confirm('Delete this medical record?');" style="display:inline;">
+                                    <input type="hidden" name="delete_record" value="1">
+                                    <input type="hidden" name="note_id" value="<?php echo (int)$record['note_id']; ?>">
+                                    <button type="submit" class="action-btn delete">Delete</button>
+                                </form>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -817,6 +809,7 @@ include("../includes/admin-sidebar.php");
     </div>
 </div>
 
+<?php if ($canManageRecords): ?>
 <div class="modal-backdrop" id="addRecordModal">
     <div class="modal-card">
         <button class="modal-close-x" type="button" onclick="closeAddRecordModal()">&times;</button>
@@ -915,6 +908,7 @@ include("../includes/admin-sidebar.php");
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <?php if (isset($_GET['message'])): ?>
     <?php
@@ -956,24 +950,37 @@ include("../includes/admin-sidebar.php");
     const toastMessage = document.getElementById('toastMessage');
 
     function openAddRecordModal() {
-        addRecordModal.classList.add('show');
+        if (addRecordModal) {
+            addRecordModal.classList.add('show');
+        }
     }
 
     function closeAddRecordModal() {
-        addRecordModal.classList.remove('show');
+        if (addRecordModal) {
+            addRecordModal.classList.remove('show');
+        }
     }
 
     function openEditRecordModal(button) {
-        document.getElementById('edit_note_id').value = button.dataset.noteId || '';
-        document.getElementById('edit_patient_id').value = button.dataset.patientId || '';
-        document.getElementById('edit_procedure').value = button.dataset.procedure || '';
-        document.getElementById('edit_treatment_notes').value = button.dataset.notes || '';
+        const noteId = document.getElementById('edit_note_id');
+        const patientId = document.getElementById('edit_patient_id');
+        const procedure = document.getElementById('edit_procedure');
+        const notes = document.getElementById('edit_treatment_notes');
 
-        editRecordModal.classList.add('show');
+        if (noteId) noteId.value = button.dataset.noteId || '';
+        if (patientId) patientId.value = button.dataset.patientId || '';
+        if (procedure) procedure.value = button.dataset.procedure || '';
+        if (notes) notes.value = button.dataset.notes || '';
+
+        if (editRecordModal) {
+            editRecordModal.classList.add('show');
+        }
     }
 
     function closeEditRecordModal() {
-        editRecordModal.classList.remove('show');
+        if (editRecordModal) {
+            editRecordModal.classList.remove('show');
+        }
     }
 
     if (recordSearch) {
