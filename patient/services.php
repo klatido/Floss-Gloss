@@ -35,7 +35,7 @@ if ($patient_result && mysqli_num_rows($patient_result) > 0) {
 
 /*
 |--------------------------------------------------------------------------
-| Fetch services (NO category column)
+| Fetch services
 |--------------------------------------------------------------------------
 */
 $services = [];
@@ -61,6 +61,20 @@ include("../includes/patient-navbar.php");
 ?>
 
 <style>
+/* CENTER WHOLE PAGE */
+.page {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* TITLE */
+.services-title {
+    width: 100%;
+    max-width: 1200px;
+}
+
 .services-title h1 {
     margin: 0 0 10px;
     font-size: 36px;
@@ -73,20 +87,31 @@ include("../includes/patient-navbar.php");
     font-size: 18px;
 }
 
+/* GRID FIX (MAIN CHANGE 🔥) */
 .services-grid {
     margin-top: 30px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 28px;
+
+    width: 100%;
+    max-width: 1200px; /* 🔥 KEY FIX */
 }
 
+/* CARD */
 .service-card {
     background: #fff;
     border: 1px solid #dde3ea;
     border-radius: 22px;
     padding: 28px;
+    transition: 0.2s;
 }
 
+.service-card:hover {
+    transform: translateY(-4px);
+}
+
+/* HEADER */
 .card-header {
     display: flex;
     justify-content: space-between;
@@ -99,6 +124,7 @@ include("../includes/patient-navbar.php");
     font-size: 20px;
 }
 
+/* BADGE */
 .badge {
     border: 1px solid #d1d5db;
     padding: 6px 12px;
@@ -107,17 +133,20 @@ include("../includes/patient-navbar.php");
     background: #f9fafb;
 }
 
+/* DESCRIPTION */
 .desc {
     color: #667085;
     margin-bottom: 20px;
 }
 
+/* DETAILS */
 .detail-row {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
 }
 
+/* BUTTON */
 .book-btn {
     display: block;
     text-align: center;
@@ -127,12 +156,14 @@ include("../includes/patient-navbar.php");
     border-radius: 12px;
     font-weight: bold;
     margin-top: 15px;
+    text-decoration: none;
 }
 
 .book-btn:hover {
     background: #0b8f8a;
 }
 
+/* RESPONSIVE */
 @media (max-width: 1000px) {
     .services-grid {
         grid-template-columns: 1fr;
