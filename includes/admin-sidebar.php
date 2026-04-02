@@ -138,9 +138,9 @@ $role = currentRole();
 
             <nav class="sidebar-nav">
                 <?php if ($role !== 'dentist'): ?>
-                <a href="admin-dashboard.php" class="<?php echo ($current_page === 'admin-dashboard.php') ? 'active' : ''; ?>">
-                    <span class="nav-icon">◫</span> Dashboard
-                </a>
+                    <a href="admin-dashboard.php" class="<?php echo ($current_page === 'admin-dashboard.php') ? 'active' : ''; ?>">
+                        <span class="nav-icon">◫</span> Dashboard
+                    </a>
                 <?php endif; ?>
 
                 <?php if ($role === 'system_admin' || $role === 'staff'): ?>
@@ -168,9 +168,11 @@ $role = currentRole();
                         <span class="nav-icon">▭</span> Billing
                     </a>
 
-                    <a href="manage-users.php" class="<?php echo ($current_page === 'manage-users.php') ? 'active' : ''; ?>">
-                        <span class="nav-icon">👤</span> Users
-                    </a>
+                    <?php if ($role === 'system_admin'): ?>
+                        <a href="manage-users.php" class="<?php echo ($current_page === 'manage-users.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">👤</span> Users
+                        </a>
+                    <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($role === 'dentist'): ?>
