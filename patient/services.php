@@ -40,7 +40,7 @@ if ($patient_result && mysqli_num_rows($patient_result) > 0) {
 */
 $services = [];
 
-$services_sql = "SELECT service_id, service_name, description, duration_minutes, price
+$services_sql = "SELECT service_id, service_name, description, image_path, duration_minutes, price
                  FROM services
                  WHERE is_active = 1
                  ORDER BY service_name ASC";
@@ -163,6 +163,16 @@ include("../includes/patient-navbar.php");
     background: #0b8f8a;
 }
 
+.service-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    border: 1px solid #dde3ea;
+    background: #f8fafc;
+}
+
 /* RESPONSIVE */
 @media (max-width: 1000px) {
     .services-grid {
@@ -189,6 +199,10 @@ include("../includes/patient-navbar.php");
                         <h3><?php echo htmlspecialchars($row['service_name']); ?></h3>
                         <span class="badge">Dental Service</span>
                     </div>
+
+                    <?php if (!empty($row['image_path'])): ?>
+                        <img src="<?php echo htmlspecialchars($row['image_path']); ?>" alt="Service Image" class="service-image">
+                    <?php endif; ?>
 
                     <div class="desc">
                         <?php echo htmlspecialchars($row['description'] ?? 'No description available.'); ?>

@@ -46,7 +46,7 @@ if ($admin_result && mysqli_num_rows($admin_result) > 0) {
 
 $services = [];
 $services_sql = "
-    SELECT service_id, service_name, description, duration_minutes, price, is_active, created_by, created_at, updated_at
+    SELECT service_id, service_name, description, image_path, duration_minutes, price, is_active, created_by, created_at, updated_at
     FROM services
     ORDER BY service_name ASC
 ";
@@ -357,6 +357,23 @@ include("../includes/admin-sidebar.php");
         font-size: 13px;
     }
 
+    .service-thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid #dbe2ea;
+        background: #f8fafc;
+    }
+
+    .service-thumb-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: #64748b;
+    }
+
     @media (max-width: 900px) {
         .services-top {
             flex-direction: column;
@@ -388,7 +405,6 @@ include("../includes/admin-sidebar.php");
                 <h2>Services Management</h2>
                 <p>Manage dental services and procedures</p>
             </div>
-            <img src="../assets/dentist.jpg" alt="Dentist" style="height:150px; width: auto;">
             <button type="button" class="add-btn" onclick="toggleServiceForm()">+ Add Service</button>
         </div>
 
@@ -423,6 +439,11 @@ include("../includes/admin-sidebar.php");
                             <label>Description</label>
                             <textarea name="description" required></textarea>
                         </div>
+
+                        <div class="form-group full">
+                            <label>Service Image Path</label>
+                            <input type="text" name="image_path" placeholder="../assets/services/teeth-cleaning.jpg">
+                        </div>
                     </div>
 
                     <div class="form-actions">
@@ -440,6 +461,7 @@ include("../includes/admin-sidebar.php");
                     <table class="services-table">
                         <thead>
                             <tr>
+                                <th>Image</th>
                                 <th>Service Name</th>
                                 <th>Price</th>
                                 <th>Duration</th>
@@ -452,16 +474,27 @@ include("../includes/admin-sidebar.php");
                                 <?php foreach ($services as $row): ?>
                                     <tr>
                                         <td>
+                                            <?php if (!empty($row['image_path'])): ?>
+                                                <img src="<?php echo htmlspecialchars($row['image_path']); ?>" alt="Service Image" class="service-thumb">
+                                            <?php else: ?>
+                                                <div class="service-thumb service-thumb-placeholder">No Image</div>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td>
                                             <div class="service-name"><?php echo htmlspecialchars($row['service_name']); ?></div>
                                             <div class="service-desc"><?php echo htmlspecialchars($row['description'] ?? 'No description available.'); ?></div>
                                         </td>
+
                                         <td>₱<?php echo number_format((float)$row['price'], 0); ?></td>
                                         <td><?php echo (int)$row['duration_minutes']; ?> mins</td>
+
                                         <td>
                                             <span class="status-pill <?php echo ((int)$row['is_active'] === 1) ? 'active' : 'inactive'; ?>">
                                                 <?php echo ((int)$row['is_active'] === 1) ? 'Active' : 'Inactive'; ?>
                                             </span>
                                         </td>
+
                                         <td>
                                             <a href="edit-service.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn" title="Edit">✎</a>
                                             <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');" title="Delete">🗑</a>
