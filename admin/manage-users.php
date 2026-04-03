@@ -637,17 +637,11 @@ include("../includes/admin-sidebar.php");
                                     <span class="role-pill <?php echo htmlspecialchars($row['role']); ?>">
                                         <?php echo htmlspecialchars(ucfirst($row['role'])); ?>
                                     </span>
-
-                                    <?php if (!empty($row['is_current_user'])): ?>
-                                        <span class="role-pill" style="background:#fef3c7; color:#92400e;">
-                                            Current Account
-                                        </span>
-                                    <?php endif; ?>
-
                                     <span class="status-pill <?php echo htmlspecialchars($row['account_status']); ?>">
                                         <?php echo htmlspecialchars(ucfirst($row['account_status'])); ?>
                                     </span>
-                                </div> 
+                                </div>
+                            </div>
 
                             <div class="user-info-grid">
                                 <div class="info-box">
