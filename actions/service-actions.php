@@ -25,7 +25,25 @@ if (isset($_POST['add'])) {
 
     $service_name = clean($_POST['service_name']);
     $description = clean($_POST['description']);
-    $image_path = clean($_POST['image_path']);
+    
+    $image_path = '';
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+
+        $upload_dir = "../assets/services/";
+
+        // siguraduhin may folder
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        $file_name = time() . "_" . basename($_FILES['image']['name']);
+        $target_path = $upload_dir . $file_name;
+
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_path)) {
+            $image_path = $target_path;
+        }
+    }
+
     $duration_minutes = (int)($_POST['duration_minutes'] ?? 0);
     $price = (float)($_POST['price'] ?? 0);
     $is_active = (int)($_POST['is_active'] ?? 1);
@@ -87,7 +105,24 @@ if (isset($_POST['update'])) {
     $service_id = (int)($_POST['service_id'] ?? 0);
     $service_name = clean($_POST['service_name']);
     $description = clean($_POST['description']);
-    $image_path = clean($_POST['image_path']);
+    
+    $image_path = clean($_POST['existing_image'] ?? '');
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+
+        $upload_dir = "../assets/services/";
+
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        $file_name = time() . "_" . basename($_FILES['image']['name']);
+        $target_path = $upload_dir . $file_name;
+
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_path)) {
+            $image_path = $target_path;
+        }
+    }
+
     $duration_minutes = (int)($_POST['duration_minutes'] ?? 0);
     $price = (float)($_POST['price'] ?? 0);
     $is_active = (int)($_POST['is_active'] ?? 1);

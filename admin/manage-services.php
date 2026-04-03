@@ -410,7 +410,7 @@ include("../includes/admin-sidebar.php");
 
         <section class="panel">
             <div id="serviceFormWrap" class="service-form-wrap">
-                <form method="POST" action="../actions/service-actions.php">
+                <form method="POST" action="../actions/service-actions.php" enctype="multipart/form-data">
                     <div class="service-form-grid">
                         <div class="form-group">
                             <label>Service Name</label>
@@ -441,8 +441,8 @@ include("../includes/admin-sidebar.php");
                         </div>
 
                         <div class="form-group full">
-                            <label>Service Image Path</label>
-                            <input type="text" name="image_path" placeholder="../assets/services/teeth-cleaning.jpg">
+                            <label>Service Image</label>
+                            <input type="file" name="image" accept="image/*">
                         </div>
                     </div>
 
