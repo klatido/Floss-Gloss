@@ -388,6 +388,7 @@ include("../includes/admin-sidebar.php");
                 <h2>Services Management</h2>
                 <p>Manage dental services and procedures</p>
             </div>
+            <img src="../assets/dentist.jpg" alt="Dentist" style="height:150px; width: auto;">
             <button type="button" class="add-btn" onclick="toggleServiceForm()">+ Add Service</button>
         </div>
 

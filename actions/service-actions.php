@@ -101,3 +101,4 @@ if (isset($_GET['delete'])) {
 
 header("Location: ../admin/manage-services.php");
 exit();
+?>
