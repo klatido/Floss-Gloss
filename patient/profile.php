@@ -269,13 +269,6 @@ include("../includes/patient-navbar.php");
                         <input type="text" class="no-icon" value="<?= htmlspecialchars($history_text) ?>" readonly style="background-color: #f3f4f6;">
                     </div>
                 </div>
-
-                <div class="profile-input-group profile-full-width">
-                    <label>Allergies</label>
-                    <div class="profile-input-wrapper">
-                        <input type="text" name="allergies" class="no-icon editable-field" value="<?= htmlspecialchars($allergies_text) ?>" placeholder="List any allergies here..." readonly>
-                    </div>
-                </div>
             </div>
 
             <div class="profile-warning">

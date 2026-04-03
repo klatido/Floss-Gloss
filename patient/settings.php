@@ -68,8 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius:6px;
         }
         a {
-            align: center;
+            text-align: center;
         }
+        p, h2 {
+            text-align: center;
+        }
+
         h2, {
             text-align: center;
             color: #000000;
@@ -87,14 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         .btn-back:hover {
             background: #0f766e;
+            align: center;
         }
     </style>
 </head>
 
 <body>
 <div class="container">
+    <?php
+        $page_title = "Patient Dashboard | Floss & Gloss Dental";
+        include("../includes/patient-header.php");
+        include("../includes/patient-navbar.php");
+    ?>
     <h2>Settings</h2>
-    <h2>Manage your account preferences and security</h2>
+    <p>Manage your settings and preferences</p>
 
     <div class="card">
         <h3>Change Password</h3>

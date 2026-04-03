@@ -275,20 +275,11 @@ function updateSummary() {
 <!-- NAVBAR -->
 <div class="navbar">
 
-    <div class="nav-left">
-        <div class="logo-box">🦷</div>
-        <div class="brand">
-            <strong>Floss & Gloss</strong><br>
-            <span>Dental Care</span>
-        </div>
-    </div>
-
-    <div class="nav-center">
-        <a href="patient-dashboard.php">Dashboard</a>
-        <a href="services.php">Services</a>
-        <a href="profile.php">Profile</a>
-        <a href="settings.php">Settings</a>
-    </div>
+   <?php
+        $page_title = "Patient Dashboard | Floss & Gloss Dental";
+        include("../includes/patient-header.php");
+        include("../includes/patient-navbar.php");
+    ?>
 
     <div class="nav-right">
         <div class="user">
