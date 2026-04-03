@@ -45,14 +45,27 @@ if (isset($_POST['book'])) {
     $patient = mysqli_fetch_assoc($p);
     $patient_id = $patient['patient_id'];
 
-    $end_time = date('H:i:s', strtotime($time . ' +1 hour'));
+    $service_query = mysqli_query($conn, "SELECT duration_minutes FROM services WHERE service_id = '$service_id'");
+    $service_data = mysqli_fetch_assoc($service_query);
+    $duration = $service_data['duration_minutes'] ? $service_data['duration_minutes'] : 60;
+
+    $end_time = date('H:i:s', strtotime($time . " +$duration minutes"));
+
+    if (strtotime($end_time) > strtotime('17:00:00')) {
+        die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Error: This appointment extends past our 5:00 PM closing time.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back and select an earlier time</a></h3></div>");
+    }
+
+    $today_date = date('Y-m-d');
+    if ($date < $today_date) {
+        die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Security Error: You cannot book an appointment in the past.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back to the booking form</a></h3></div>");
+    }
+
     $code = "APP-" . time();
 
     mysqli_query($conn, "INSERT INTO appointments
     (appointment_code, patient_id, service_id, dentist_id,
     requested_date, requested_start_time, requested_end_time,
     status, created_by_patient)
-
     VALUES
     ('$code','$patient_id','$service_id','$dentist_id',
     '$date','$time','$end_time','pending','$user_id')");
@@ -297,13 +310,13 @@ function updateSummary() {
 <form method="POST">
 
 <label>Select Service</label>
-<select name="service_id" id="service" onchange="updateSummary()" required>
-<option value="">Choose service</option>
-<?php while($s = mysqli_fetch_assoc($services)) { ?>
-<option value="<?= $s['service_id'] ?>">
-<?= $s['service_name'] ?> - ₱<?= number_format($s['price']) ?>
-</option>
-<?php } ?>
+<select name="service_id" id="service" onchange="updateSummary(); loadTimeSlots();" required>
+    <option value="" data-duration="60">Choose service</option>
+    <?php while($s = mysqli_fetch_assoc($services)) { ?>
+        <option value="<?= $s['service_id'] ?>" data-duration="<?= $s['duration_minutes'] ?>">
+            <?= htmlspecialchars($s['service_name']) ?> - ₱<?= number_format($s['price']) ?>
+        </option>
+    <?php } ?>
 </select>
 
 <label>Select Dentist</label>
@@ -379,8 +392,7 @@ function renderCalendar() {
     let y = current.getFullYear();
     let m = current.getMonth();
 
-    document.getElementById("monthYear").innerText =
-        current.toLocaleString("default", { month:"long", year:"numeric" });
+    document.getElementById("monthYear").innerText = current.toLocaleString("default", { month:"long", year:"numeric" });
 
     let firstDay = new Date(y, m, 1).getDay();
     let totalDays = new Date(y, m+1, 0).getDate();
@@ -395,26 +407,41 @@ function renderCalendar() {
         cal.appendChild(div);
     });
 
-    for(let i=0;i<firstDay;i++){
+    for(let i=0; i<firstDay; i++){
         cal.appendChild(document.createElement("div"));
     }
 
+    let today = new Date();
+    today.setHours(0, 0, 0, 0); 
+
     for(let d=1; d<=totalDays; d++) {
         let div = document.createElement("div");
-        div.className="day";
-        div.innerText=d;
+        div.className = "day";
+        div.innerText = d;
 
-        let date = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        let dateString = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        
+        let calendarDay = new Date(y, m, d);
 
-        div.onclick = () => {
-            document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"));
-            div.classList.add("selected");
+        if (calendarDay < today) {
+            div.style.color = "#94a3b8"; 
+            div.style.background = "#f1f5f9";
+            div.style.cursor = "not-allowed";
+            div.style.opacity = "0.4"; 
+        
+            div.style.pointerEvents = "none"; 
+        } else {
+            div.classList.add("selectable");
+            div.onclick = () => {
+                document.querySelectorAll(".day").forEach(x => x.classList.remove("selected"));
+                div.classList.add("selected");
 
-            document.getElementById("date").value = date;
+                document.getElementById("date").value = dateString;
 
-            loadTimeSlots();
-            updateSummary();
-        };
+                loadTimeSlots(); 
+                updateSummary();
+            };
+        }
 
         cal.appendChild(div);
     }
@@ -422,19 +449,26 @@ function renderCalendar() {
 
 function loadTimeSlots() {
     let select = document.getElementById("time_select");
-    select.innerHTML = "<option>Select time</option>";
+    select.innerHTML = "<option value=''>Choose a time slot</option>";
 
-    let hours = [9,10,11,12,13,14,15,16,17];
+    let sSelect = document.getElementById("service");
+    let duration = 60; // Default to 1 hour
+    if (sSelect.selectedIndex > 0) {
+        duration = parseInt(sSelect.options[sSelect.selectedIndex].getAttribute("data-duration")) || 60;
+    }
 
-    hours.forEach(h=>{
-        let time = `${String(h).padStart(2,'0')}:00`;
+    let endHour = (duration >= 120) ? 15 : 16;
+
+    for(let h = 9; h <= endHour; h++) {
+        let timeStr = `${String(h).padStart(2,'0')}:00`;
+        
+        let displayTime = h < 12 ? `${h}:00 AM` : (h === 12 ? `12:00 PM` : `${h - 12}:00 PM`);
 
         let opt = document.createElement("option");
-        opt.value = time;
-        opt.text = time;
-
+        opt.value = timeStr;
+        opt.text = displayTime;
         select.appendChild(opt);
-    });
+    }
 }
 
 function selectTime() {
