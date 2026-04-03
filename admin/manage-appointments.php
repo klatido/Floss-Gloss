@@ -104,6 +104,43 @@ if ($result) {
 $page_title = "Appointments | Floss & Gloss Dental";
 include("../includes/admin-header.php");
 include("../includes/admin-sidebar.php");
+
+$toast_message = '';
+$toast_class = 'success';
+
+if (isset($_GET['message'])) {
+    switch ($_GET['message']) {
+        case 'approved':
+            $toast_message = 'Appointment approved successfully';
+            $toast_class = 'success';
+            break;
+
+        case 'rejected':
+            $toast_message = 'Appointment rejected successfully';
+            $toast_class = 'success';
+            break;
+
+        case 'invalid_status':
+            $toast_message = 'Invalid appointment action';
+            $toast_class = 'error';
+            break;
+
+        case 'not_found':
+            $toast_message = 'Appointment not found';
+            $toast_class = 'error';
+            break;
+
+        case 'already_updated':
+            $toast_message = 'Appointment was already updated';
+            $toast_class = 'error';
+            break;
+
+        case 'error':
+            $toast_message = 'Something went wrong';
+            $toast_class = 'error';
+            break;
+    }
+}
 ?>
 
 <style>
@@ -488,6 +525,45 @@ include("../includes/admin-sidebar.php");
         cursor: pointer;
     }
 
+    .toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: #ffffff;
+    border: 1px solid #dbe2ea;
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    z-index: 5000;
+    min-width: 260px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    }
+
+    .toast.success .toast-icon {
+        background: #16a34a;
+    }
+
+    .toast.error .toast-icon {
+        background: #dc2626;
+    }
+
+    .toast-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+
     @media (max-width: 1100px) {
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -508,6 +584,8 @@ include("../includes/admin-sidebar.php");
             grid-template-columns: 1fr;
         }
     }
+
+
 </style>
 
 <div class="main-area">
@@ -730,6 +808,13 @@ include("../includes/admin-sidebar.php");
     </div>
 </div>
 
+<?php if ($toast_message !== ''): ?>
+    <div class="toast <?php echo htmlspecialchars($toast_class); ?>" id="toastMessage">
+        <span class="toast-icon"><?php echo $toast_class === 'success' ? '✓' : '!'; ?></span>
+        <span><?php echo htmlspecialchars($toast_message); ?></span>
+    </div>
+<?php endif; ?>
+
 <script>
     const modal = document.getElementById('appointmentModal');
     const modalPatient = document.getElementById('modalPatient');
@@ -741,6 +826,7 @@ include("../includes/admin-sidebar.php");
     const modalCost = document.getElementById('modalCost');
     const modalActions = document.getElementById('modalActions');
     const statusFilter = document.getElementById('statusFilter');
+    const toastMessage = document.getElementById('toastMessage');
 
     function getStatusBadgeClass(status) {
         status = status.toLowerCase().trim();
@@ -781,8 +867,8 @@ include("../includes/admin-sidebar.php");
 
         if (status.toLowerCase().trim() === 'pending') {
             modalActions.innerHTML = `
-                <a class="btn-approve" href="update_status.php?id=${id}&status=Approved">Approve Appointment</a>
-                <a class="btn-reject" href="update_status.php?id=${id}&status=Rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
+                <a class="btn-approve" href="update-status.php?id=${id}&status=Approved">Approve Appointment</a>
+                <a class="btn-reject" href="update-status.php?id=${id}&status=Rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
                 <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
             `;
         } else {
@@ -819,4 +905,17 @@ include("../includes/admin-sidebar.php");
             row.style.display = (selected === 'all' || rowStatus === selected) ? '' : 'none';
         });
     });
+
+    if (toastMessage) {
+    setTimeout(() => {
+        toastMessage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toastMessage.style.opacity = '0';
+        toastMessage.style.transform = 'translateY(10px)';
+    }, 2500);
+
+    setTimeout(() => {
+        toastMessage.remove();
+    }, 3000);
+    }
+
 </script>

@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_password'])) {
         UPDATE users
         SET password_hash = ?
         WHERE user_id = ?
-          AND role IN ('staff', 'dentist')
+          AND role IN ('system_admin', 'staff', 'dentist')
         LIMIT 1
     ";
     $password_stmt = mysqli_prepare($conn, $password_sql);
@@ -634,8 +634,16 @@ include("../includes/admin-sidebar.php");
                                 </div>
 
                                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                    <?php
+                                    $role_label = ucfirst($row['role']);
+
+                                    if ($row['role'] === 'system_admin') {
+                                        $role_label = 'System Administrator';
+                                    }
+                                    ?>
+
                                     <span class="role-pill <?php echo htmlspecialchars($row['role']); ?>">
-                                        <?php echo htmlspecialchars(ucfirst($row['role'])); ?>
+                                        <?php echo htmlspecialchars($role_label); ?>
                                     </span>
                                     <span class="status-pill <?php echo htmlspecialchars($row['account_status']); ?>">
                                         <?php echo htmlspecialchars(ucfirst($row['account_status'])); ?>
