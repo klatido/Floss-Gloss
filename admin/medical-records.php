@@ -60,8 +60,12 @@ if ($admin_stmt) {
         );
 
         if ($name !== '') {
+        if (($admin_row['role'] ?? '') === 'dentist') {
+            $admin_name = 'Dr. ' . $name;
+        } else {
             $admin_name = $name;
         }
+    }
 
         if (($admin_row['role'] ?? '') === 'system_admin') {
             $admin_role = 'Administrator';
