@@ -173,8 +173,16 @@ $users_sql = "
     FROM users u
     LEFT JOIN dentist_profiles dp ON u.user_id = dp.user_id
     LEFT JOIN staff_profiles sp ON u.user_id = sp.user_id
-    WHERE u.role IN ('staff', 'dentist')
-    ORDER BY u.role ASC, u.created_at DESC, u.user_id DESC
+    WHERE u.role IN ('system_admin', 'staff', 'dentist')
+    ORDER BY
+        CASE
+            WHEN u.role = 'system_admin' THEN 1
+            WHEN u.role = 'staff' THEN 2
+            WHEN u.role = 'dentist' THEN 3
+            ELSE 4
+        END,
+        u.created_at DESC,
+        u.user_id DESC
 ";
 
 $users_result = mysqli_query($conn, $users_sql);
@@ -187,20 +195,45 @@ if ($users_result) {
                 ($row['dentist_middle_name'] ?? '') . ' ' .
                 ($row['dentist_last_name'] ?? '')
             );
-            $display_name = $full_name !== '' ? 'Dr. ' . preg_replace('/\s+/', ' ', trim($full_name)) : 'Unknown Dentist';
-            $extra_info = $row['specialization'] ?: 'General Dentistry';
+
+            $display_name = $full_name !== ''
+                ? 'Dr. ' . preg_replace('/\s+/', ' ', trim($full_name))
+                : 'Unknown Dentist';
+
+            $extra_info = !empty($row['specialization'])
+                ? $row['specialization']
+                : 'General Dentistry';
+
         } else {
             $full_name = trim(
                 ($row['staff_first_name'] ?? '') . ' ' .
                 ($row['staff_middle_name'] ?? '') . ' ' .
                 ($row['staff_last_name'] ?? '')
             );
-            $display_name = $full_name !== '' ? preg_replace('/\s+/', ' ', trim($full_name)) : 'Unknown Staff';
-            $extra_info = $row['position'] ?: 'Clinic Staff';
+
+            if (($row['role'] ?? '') === 'system_admin') {
+                $display_name = $full_name !== ''
+                    ? preg_replace('/\s+/', ' ', trim($full_name))
+                    : 'System Administrator';
+
+                $extra_info = !empty($row['position'])
+                    ? $row['position']
+                    : 'System Administrator';
+            } else {
+                $display_name = $full_name !== ''
+                    ? preg_replace('/\s+/', ' ', trim($full_name))
+                    : 'Unknown Staff';
+
+                $extra_info = !empty($row['position'])
+                    ? $row['position']
+                    : 'Clinic Staff';
+            }
         }
 
         $row['display_name'] = $display_name;
         $row['extra_info'] = $extra_info;
+        $row['is_current_user'] = ((int)$row['user_id'] === $user_id);
+
         $users[] = $row;
     }
 }
@@ -604,11 +637,17 @@ include("../includes/admin-sidebar.php");
                                     <span class="role-pill <?php echo htmlspecialchars($row['role']); ?>">
                                         <?php echo htmlspecialchars(ucfirst($row['role'])); ?>
                                     </span>
+
+                                    <?php if (!empty($row['is_current_user'])): ?>
+                                        <span class="role-pill" style="background:#fef3c7; color:#92400e;">
+                                            Current Account
+                                        </span>
+                                    <?php endif; ?>
+
                                     <span class="status-pill <?php echo htmlspecialchars($row['account_status']); ?>">
                                         <?php echo htmlspecialchars(ucfirst($row['account_status'])); ?>
                                     </span>
-                                </div>
-                            </div>
+                                </div> 
 
                             <div class="user-info-grid">
                                 <div class="info-box">
@@ -642,18 +681,20 @@ include("../includes/admin-sidebar.php");
                                     Edit Password
                                 </button>
 
-                                <form method="POST" onsubmit="return confirm('<?php echo htmlspecialchars($toggle_confirm, ENT_QUOTES); ?>');">
-                                    <input type="hidden" name="toggle_status" value="1">
-                                    <input type="hidden" name="target_user_id" value="<?php echo (int)$row['user_id']; ?>">
-                                    <input type="hidden" name="new_status" value="<?php echo htmlspecialchars($toggle_to); ?>">
-                                    <button type="submit" class="btn-warning"><?php echo htmlspecialchars($toggle_label); ?></button>
-                                </form>
+                                <?php if (empty($row['is_current_user'])): ?>
+                                    <form method="POST" onsubmit="return confirm('<?php echo htmlspecialchars($toggle_confirm, ENT_QUOTES); ?>');">
+                                        <input type="hidden" name="toggle_status" value="1">
+                                        <input type="hidden" name="target_user_id" value="<?php echo (int)$row['user_id']; ?>">
+                                        <input type="hidden" name="new_status" value="<?php echo htmlspecialchars($toggle_to); ?>">
+                                        <button type="submit" class="btn-warning"><?php echo htmlspecialchars($toggle_label); ?></button>
+                                    </form>
 
-                                <form method="POST" onsubmit="return confirm('Delete this user account? This will also remove the linked profile.');">
-                                    <input type="hidden" name="delete_user" value="1">
-                                    <input type="hidden" name="target_user_id" value="<?php echo (int)$row['user_id']; ?>">
-                                    <button type="submit" class="btn-danger">Delete</button>
-                                </form>
+                                    <form method="POST" onsubmit="return confirm('Delete this user account? This will also remove the linked profile.');">
+                                        <input type="hidden" name="delete_user" value="1">
+                                        <input type="hidden" name="target_user_id" value="<?php echo (int)$row['user_id']; ?>">
+                                        <button type="submit" class="btn-danger">Delete</button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
 
                             <div class="password-form" id="password-form-<?php echo (int)$row['user_id']; ?>">
