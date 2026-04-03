@@ -33,6 +33,10 @@ function moneyFormat($amount): string {
     return '₱' . number_format((float)$amount, 0);
 }
 
+function monthLabel(int $month): string {
+    return date('M', mktime(0, 0, 0, $month, 1));
+}
+
 /* --------------------------------------------------
    ADMIN INFO
 -------------------------------------------------- */
@@ -70,129 +74,16 @@ if ($admin_stmt) {
 }
 
 /* --------------------------------------------------
-   PAYMENT ACTIONS
+   FILTERS
 -------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_action'])) {
-    $payment_id = isset($_POST['payment_id']) ? (int)$_POST['payment_id'] : 0;
-    $action = trim($_POST['payment_action'] ?? '');
+$selected_date = trim($_GET['selected_date'] ?? date('Y-m-d'));
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selected_date)) {
+    $selected_date = date('Y-m-d');
+}
 
-    if ($payment_id <= 0 || !in_array($action, ['verify', 'mark_pending'])) {
-        header("Location: " . basename(__FILE__) . "?message=invalid");
-        exit();
-    }
-
-    $get_payment_sql = "
-        SELECT payment_id, appointment_id, verification_status
-        FROM payments
-        WHERE payment_id = ?
-        LIMIT 1
-    ";
-    $get_payment_stmt = mysqli_prepare($conn, $get_payment_sql);
-
-    if (!$get_payment_stmt) {
-        header("Location: " . basename(__FILE__) . "?message=error");
-        exit();
-    }
-
-    mysqli_stmt_bind_param($get_payment_stmt, "i", $payment_id);
-    mysqli_stmt_execute($get_payment_stmt);
-    $get_payment_result = mysqli_stmt_get_result($get_payment_stmt);
-
-    if (!$get_payment_result || mysqli_num_rows($get_payment_result) === 0) {
-        header("Location: " . basename(__FILE__) . "?message=notfound");
-        exit();
-    }
-
-    $payment_row = mysqli_fetch_assoc($get_payment_result);
-    $appointment_id = (int)$payment_row['appointment_id'];
-
-    if ($action === 'verify') {
-        $new_verification_status = 'verified';
-        $new_payment_status = 'verified';
-
-        $update_payment_sql = "
-            UPDATE payments
-            SET verification_status = ?, verified_by = ?
-            WHERE payment_id = ?
-            LIMIT 1
-        ";
-        $update_payment_stmt = mysqli_prepare($conn, $update_payment_sql);
-
-        if (!$update_payment_stmt) {
-            header("Location: " . basename(__FILE__) . "?message=error");
-            exit();
-        }
-
-        mysqli_stmt_bind_param($update_payment_stmt, "sii", $new_verification_status, $user_id, $payment_id);
-        $payment_ok = mysqli_stmt_execute($update_payment_stmt);
-
-        $update_appointment_sql = "
-            UPDATE appointments
-            SET payment_status = ?, last_updated_by = ?
-            WHERE appointment_id = ?
-            LIMIT 1
-        ";
-        $update_appointment_stmt = mysqli_prepare($conn, $update_appointment_sql);
-
-        if (!$update_appointment_stmt) {
-            header("Location: " . basename(__FILE__) . "?message=error");
-            exit();
-        }
-
-        mysqli_stmt_bind_param($update_appointment_stmt, "sii", $new_payment_status, $user_id, $appointment_id);
-        $appointment_ok = mysqli_stmt_execute($update_appointment_stmt);
-
-        if ($payment_ok && $appointment_ok) {
-            header("Location: " . basename(__FILE__) . "?message=verified");
-            exit();
-        }
-    }
-
-    if ($action === 'mark_pending') {
-        $new_verification_status = 'pending';
-        $new_payment_status = 'pending';
-        $null_verified_by = null;
-
-        $update_payment_sql = "
-            UPDATE payments
-            SET verification_status = ?, verified_by = ?
-            WHERE payment_id = ?
-            LIMIT 1
-        ";
-        $update_payment_stmt = mysqli_prepare($conn, $update_payment_sql);
-
-        if (!$update_payment_stmt) {
-            header("Location: " . basename(__FILE__) . "?message=error");
-            exit();
-        }
-
-        mysqli_stmt_bind_param($update_payment_stmt, "sii", $new_verification_status, $null_verified_by, $payment_id);
-        $payment_ok = mysqli_stmt_execute($update_payment_stmt);
-
-        $update_appointment_sql = "
-            UPDATE appointments
-            SET payment_status = ?, last_updated_by = ?
-            WHERE appointment_id = ?
-            LIMIT 1
-        ";
-        $update_appointment_stmt = mysqli_prepare($conn, $update_appointment_sql);
-
-        if (!$update_appointment_stmt) {
-            header("Location: " . basename(__FILE__) . "?message=error");
-            exit();
-        }
-
-        mysqli_stmt_bind_param($update_appointment_stmt, "sii", $new_payment_status, $user_id, $appointment_id);
-        $appointment_ok = mysqli_stmt_execute($update_appointment_stmt);
-
-        if ($payment_ok && $appointment_ok) {
-            header("Location: " . basename(__FILE__) . "?message=pending");
-            exit();
-        }
-    }
-
-    header("Location: " . basename(__FILE__) . "?message=error");
-    exit();
+$selected_year = isset($_GET['selected_year']) ? (int)$_GET['selected_year'] : (int)date('Y');
+if ($selected_year < 2020 || $selected_year > 2100) {
+    $selected_year = (int)date('Y');
 }
 
 /* --------------------------------------------------
@@ -202,40 +93,54 @@ $transactions = [];
 
 $billing_sql = "
     SELECT
+        a.appointment_id,
+        a.appointment_code,
+        a.status AS appointment_status,
+        a.payment_status,
+        a.requested_date,
+        a.final_date,
+
         p.payment_id,
-        p.appointment_id,
-        p.amount,
+        p.amount AS payment_amount,
         p.payment_method,
         p.reference_number,
         p.payment_date,
         p.verification_status,
         p.created_at AS payment_created_at,
 
-        a.payment_status,
-        a.requested_date,
-        a.final_date,
-        a.appointment_code,
-
         s.service_name,
+        s.price AS service_price,
 
         pp.patient_id,
         pp.first_name AS patient_first_name,
         pp.last_name AS patient_last_name
 
-    FROM payments p
-    INNER JOIN appointments a ON p.appointment_id = a.appointment_id
+    FROM appointments a
+    LEFT JOIN payments p ON a.appointment_id = p.appointment_id
     LEFT JOIN services s ON a.service_id = s.service_id
     LEFT JOIN patient_profiles pp ON a.patient_id = pp.patient_id
-    ORDER BY p.created_at DESC, p.payment_id DESC
+    WHERE a.status IN ('approved', 'completed', 'rejected')
+    ORDER BY COALESCE(a.final_date, a.requested_date) DESC, a.appointment_id DESC
 ";
 $billing_result = mysqli_query($conn, $billing_sql);
 
 $total_transactions = 0;
-$total_verified_amount = 0;
-$pending_count = 0;
-$pending_amount = 0;
-$verified_count = 0;
+$daily_verified_amount = 0;
+$daily_pending_count = 0;
+$daily_pending_amount = 0;
+$daily_verified_count = 0;
 $recent_verified = [];
+$monthly_summary = [];
+
+for ($m = 1; $m <= 12; $m++) {
+    $monthly_summary[$m] = [
+        'label' => monthLabel($m),
+        'revenue' => 0,
+        'payments' => 0,
+        'pending' => 0,
+        'rejected' => 0
+    ];
+}
 
 if ($billing_result) {
     while ($row = mysqli_fetch_assoc($billing_result)) {
@@ -249,30 +154,64 @@ if ($billing_result) {
             $service_name = 'Unknown Service';
         }
 
-        $status = strtolower(trim($row['verification_status'] ?? 'pending'));
-        $amount = (float)($row['amount'] ?? 0);
+        $appointment_status = strtolower(trim($row['appointment_status'] ?? 'pending'));
+        $payment_status = strtolower(trim($row['payment_status'] ?? 'pending'));
 
-        $display_date = $row['payment_date'] ?: ($row['final_date'] ?: $row['requested_date'] ?: $row['payment_created_at']);
+        /* AMOUNT MUST FOLLOW SERVICE PRICE IF PAYMENT AMOUNT IS NULL/0 */
+        $service_price = isset($row['service_price']) ? (float)$row['service_price'] : 0.00;
+        $payment_amount = isset($row['payment_amount']) ? (float)$row['payment_amount'] : 0.00;
+        $amount = ($payment_amount > 0) ? $payment_amount : $service_price;
+
+        /* BILLING DATE MUST FOLLOW APPOINTMENT DATE */
+        $billing_date = $row['final_date'] ?: $row['requested_date'];
+
+        /* DISPLAY STATUS SHOULD FOLLOW APPOINTMENT PAYMENT STATUS */
+        $display_payment_status = $payment_status;
+        if ($appointment_status === 'rejected') {
+            $display_payment_status = 'rejected';
+        }
 
         $row['patient_name'] = $patient_name;
         $row['service_name'] = $service_name;
-        $row['display_date'] = $display_date;
-        $row['display_status'] = ucfirst($status);
+        $row['display_date'] = $billing_date;
+        $row['display_status'] = ucfirst($display_payment_status);
         $row['amount_formatted'] = moneyFormat($amount);
+        $row['computed_amount'] = $amount;
+        $row['computed_payment_status'] = $display_payment_status;
         $row['appointment_label'] = !empty($row['appointment_code'])
             ? $row['appointment_code']
             : '#' . str_pad((string)$row['appointment_id'], 6, '0', STR_PAD_LEFT);
 
-        $transactions[] = $row;
-        $total_transactions++;
+        /* DAILY TABLE FILTER */
+        if ($billing_date === $selected_date) {
+            $transactions[] = $row;
+            $total_transactions++;
 
-        if ($status === 'verified') {
-            $verified_count++;
-            $total_verified_amount += $amount;
-            $recent_verified[] = $row;
-        } elseif ($status === 'pending') {
-            $pending_count++;
-            $pending_amount += $amount;
+            if ($display_payment_status === 'verified') {
+                $daily_verified_count++;
+                $daily_verified_amount += $amount;
+                $recent_verified[] = $row;
+            } elseif ($display_payment_status === 'pending') {
+                $daily_pending_count++;
+                $daily_pending_amount += $amount;
+            }
+        }
+
+        /* MONTHLY SUMMARY */
+        if (!empty($billing_date)) {
+            $year_of_row = (int)date('Y', strtotime($billing_date));
+            $month_of_row = (int)date('n', strtotime($billing_date));
+
+            if ($year_of_row === $selected_year) {
+                if ($display_payment_status === 'verified') {
+                    $monthly_summary[$month_of_row]['revenue'] += $amount;
+                    $monthly_summary[$month_of_row]['payments']++;
+                } elseif ($display_payment_status === 'pending') {
+                    $monthly_summary[$month_of_row]['pending']++;
+                } elseif ($display_payment_status === 'rejected') {
+                    $monthly_summary[$month_of_row]['rejected']++;
+                }
+            }
         }
     }
 }
@@ -355,6 +294,50 @@ include("../includes/admin-sidebar.php");
         margin: 6px 0 0;
         color: #52637a;
         font-size: 13px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: end;
+        background: #fff;
+        border: 1px solid #dde3ea;
+        border-radius: 18px;
+        padding: 18px 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-group label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        min-width: 180px;
+        padding: 11px 12px;
+        border: 1px solid #dbe2ea;
+        border-radius: 12px;
+        font-size: 14px;
+        background: #f8fafc;
+        outline: none;
+    }
+
+    .btn-filter {
+        border: none;
+        background: #0ea5a0;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
     }
 
     .stats-grid {
@@ -465,12 +448,14 @@ include("../includes/admin-sidebar.php");
         overflow-x: auto;
     }
 
-    .billing-table {
+    .billing-table,
+    .history-table {
         width: 100%;
         border-collapse: collapse;
     }
 
-    .billing-table th {
+    .billing-table th,
+    .history-table th {
         text-align: left;
         padding: 14px 10px;
         font-size: 14px;
@@ -479,14 +464,16 @@ include("../includes/admin-sidebar.php");
         white-space: nowrap;
     }
 
-    .billing-table td {
+    .billing-table td,
+    .history-table td {
         padding: 18px 10px;
         border-bottom: 1px solid #eef2f7;
         vertical-align: middle;
         font-size: 14px;
     }
 
-    .billing-table tr:last-child td {
+    .billing-table tr:last-child td,
+    .history-table tr:last-child td {
         border-bottom: none;
     }
 
@@ -522,31 +509,6 @@ include("../includes/admin-sidebar.php");
     .status-pill.rejected {
         background: #fee2e2;
         color: #991b1b;
-    }
-
-    .action-form {
-        display: inline-block;
-    }
-
-    .btn-verify,
-    .btn-pending {
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-    }
-
-    .btn-verify {
-        border: none;
-        background: #16a34a;
-        color: #fff;
-    }
-
-    .btn-pending {
-        border: 1px solid #d1d5db;
-        background: #fff;
-        color: #111827;
     }
 
     .process-box {
@@ -716,28 +678,48 @@ include("../includes/admin-sidebar.php");
     <div class="content">
         <div class="page-top">
             <h2>Billing & Payment Management</h2>
-            <p>Manage payments and verify transactions</p>
+            <p>Daily billing dashboard with yearly monthly summary</p>
         </div>
+
+        <form method="GET" class="filter-bar">
+            <div class="filter-group">
+                <label>Selected Day</label>
+                <input type="date" name="selected_date" value="<?php echo htmlspecialchars($selected_date); ?>">
+            </div>
+
+            <div class="filter-group">
+                <label>Selected Year</label>
+                <select name="selected_year">
+                    <?php for ($year = (int)date('Y') - 2; $year <= (int)date('Y') + 2; $year++): ?>
+                        <option value="<?php echo $year; ?>" <?php echo $selected_year === $year ? 'selected' : ''; ?>>
+                            <?php echo $year; ?>
+                        </option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-filter">Apply Filters</button>
+        </form>
 
         <div class="stats-grid">
             <div class="stat-card revenue">
-                <div class="stat-title">Total Revenue</div>
+                <div class="stat-title">Revenue for <?php echo htmlspecialchars(safeDateFormat($selected_date)); ?></div>
                 <div class="stat-icon">₱</div>
-                <div class="stat-value"><?php echo moneyFormat($total_verified_amount); ?></div>
-                <div class="stat-subtext">Verified payments</div>
+                <div class="stat-value"><?php echo moneyFormat($daily_verified_amount); ?></div>
+                <div class="stat-subtext">Verified payments of the day</div>
             </div>
 
             <div class="stat-card pending">
-                <div class="stat-title">Pending Payments</div>
+                <div class="stat-title">Pending Payments for <?php echo htmlspecialchars(safeDateFormat($selected_date)); ?></div>
                 <div class="stat-icon">◔</div>
-                <div class="stat-value"><?php echo $pending_count; ?></div>
-                <div class="stat-subtext"><?php echo moneyFormat($pending_amount); ?></div>
+                <div class="stat-value"><?php echo $daily_pending_count; ?></div>
+                <div class="stat-subtext"><?php echo moneyFormat($daily_pending_amount); ?></div>
             </div>
 
             <div class="stat-card verified">
-                <div class="stat-title">Verified Payments</div>
+                <div class="stat-title">Verified Payments for <?php echo htmlspecialchars(safeDateFormat($selected_date)); ?></div>
                 <div class="stat-icon">✓</div>
-                <div class="stat-value"><?php echo $verified_count; ?></div>
+                <div class="stat-value"><?php echo $daily_verified_count; ?></div>
                 <div class="stat-subtext">Transactions</div>
             </div>
         </div>
@@ -745,7 +727,7 @@ include("../includes/admin-sidebar.php");
         <section class="panel">
             <div class="panel-head">
                 <div class="panel-title">
-                    <h3>All Transactions</h3>
+                    <h3>Transactions for <?php echo htmlspecialchars(safeDateFormat($selected_date)); ?></h3>
                     <p><?php echo $total_transactions; ?> transactions</p>
                 </div>
 
@@ -777,9 +759,7 @@ include("../includes/admin-sidebar.php");
                     <tbody id="billingTableBody">
                         <?php if (count($transactions) > 0): ?>
                             <?php foreach ($transactions as $transaction): ?>
-                                <?php
-                                    $status = strtolower($transaction['verification_status'] ?? 'pending');
-                                ?>
+                                <?php $status = strtolower($transaction['computed_payment_status'] ?? 'pending'); ?>
                                 <tr data-status="<?php echo htmlspecialchars($status); ?>">
                                     <td><?php echo htmlspecialchars($transaction['appointment_label']); ?></td>
                                     <td><?php echo htmlspecialchars($transaction['patient_name']); ?></td>
@@ -793,25 +773,13 @@ include("../includes/admin-sidebar.php");
                                         </span>
                                     </td>
                                     <td>
-                                        <?php if ($status === 'verified'): ?>
-                                            <form method="POST" class="action-form">
-                                                <input type="hidden" name="payment_id" value="<?php echo (int)$transaction['payment_id']; ?>">
-                                                <input type="hidden" name="payment_action" value="mark_pending">
-                                                <button type="submit" class="btn-pending">Mark Pending</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <form method="POST" class="action-form">
-                                                <input type="hidden" name="payment_id" value="<?php echo (int)$transaction['payment_id']; ?>">
-                                                <input type="hidden" name="payment_action" value="verify">
-                                                <button type="submit" class="btn-verify">Verify Payment</button>
-                                            </form>
-                                        <?php endif; ?>
+                                        <span class="muted">Manage in Appointments</span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" class="empty-state">No transactions found.</td>
+                                <td colspan="7" class="empty-state">No transactions found for this day.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -822,17 +790,17 @@ include("../includes/admin-sidebar.php");
         <section class="process-box">
             <h3>Payment Verification Process</h3>
             <ol>
+                <li><strong>Appointment Approved:</strong> Once an appointment is approved, it appears as a pending payment for its billing day.</li>
                 <li><strong>Check Payment:</strong> Review submitted payment reference and proof details.</li>
                 <li><strong>Verify Payment:</strong> Confirm payment received in your bank account, cash log, or GCash.</li>
                 <li><strong>Update Status:</strong> Click "Verify Payment" to confirm the transaction.</li>
-                <li><strong>Notify Patient:</strong> System can use the updated payment status for downstream notices.</li>
             </ol>
         </section>
 
         <section class="panel">
             <div class="panel-title">
-                <h3>Recent Verified Payments</h3>
-                <p>Latest confirmed transactions</p>
+                <h3>Recent Verified Payments for <?php echo htmlspecialchars(safeDateFormat($selected_date)); ?></h3>
+                <p>Latest confirmed transactions of the selected day</p>
             </div>
 
             <?php if (count($recent_verified) > 0): ?>
@@ -856,8 +824,40 @@ include("../includes/admin-sidebar.php");
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
-                <div class="empty-state">No verified payments yet.</div>
+                <div class="empty-state">No verified payments yet for this day.</div>
             <?php endif; ?>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">
+                <h3>Monthly Billing History for <?php echo htmlspecialchars((string)$selected_year); ?></h3>
+                <p>January to December yearly summary</p>
+            </div>
+
+            <div class="table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Total Revenue</th>
+                            <th>Verified Payments</th>
+                            <th>Pending Payments</th>
+                            <th>Rejected</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($monthly_summary as $month => $data): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($data['label']); ?></td>
+                                <td><span class="amount-text"><?php echo moneyFormat($data['revenue']); ?></span></td>
+                                <td><?php echo (int)$data['payments']; ?></td>
+                                <td><?php echo (int)$data['pending']; ?></td>
+                                <td><?php echo (int)$data['rejected']; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <div style="flex: 1;"></div>
