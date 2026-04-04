@@ -241,6 +241,11 @@ include("../includes/patient-navbar.php");
                     <span class="<?php echo statusBadgeClass($row['status']); ?>">
                         <?php echo htmlspecialchars(statusLabel($row['status'])); ?>
                     </span>
+                    <?php if (in_array($row['status'], ['approved','rescheduled'])): ?>
+                        <a href="book-appointment.php?reschedule_id=<?php echo $row['appointment_id']; ?>" class="btn-secondary">
+                            Reschedule
+                        </a>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>

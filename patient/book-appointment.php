@@ -11,6 +11,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+$reschedule_id = $_GET['reschedule_id'] ?? null;
+$existing = null;
+
+if ($reschedule_id) {
+    $q = mysqli_query($conn, "SELECT * FROM appointments WHERE appointment_id = '$reschedule_id'");
+    $existing = mysqli_fetch_assoc($q);
+}
+
 /* =========================
    GET PATIENT PROFILE
 ========================= */
@@ -68,15 +76,28 @@ if (isset($_POST['book'])) {
         die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Security Error: You cannot book an appointment in the past.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back to the booking form</a></h3></div>");
     }
 
-    $code = "APP-" . time();
+    if ($reschedule_id) {
+    // RESCHEDULE (UPDATE)
+    mysqli_query($conn, "
+        UPDATE appointments
+        SET requested_date = '$date',
+            requested_start_time = '$time',
+            requested_end_time = '$end_time',
+            status = 'reschedule_requested'
+        WHERE appointment_id = '$reschedule_id'
+        ");
+    } else {
+        // BOOK (INSERT)
+        $code = "APP-" . time();
 
-    mysqli_query($conn, "INSERT INTO appointments
-    (appointment_code, patient_id, service_id, dentist_id,
-    requested_date, requested_start_time, requested_end_time,
-    status, created_by_patient)
-    VALUES
-    ('$code','$patient_id','$service_id','$dentist_id',
-    '$date','$time','$end_time','pending','$user_id')");
+        mysqli_query($conn, "INSERT INTO appointments
+        (appointment_code, patient_id, service_id, dentist_id,
+        requested_date, requested_start_time, requested_end_time,
+        status, created_by_patient)
+        VALUES
+        ('$code','$patient_id','$service_id','$dentist_id',
+        '$date','$time','$end_time','pending','$user_id')");
+    }
 
     header("Location: patient-dashboard.php?success=1");
     exit();
@@ -359,7 +380,7 @@ input {
             </div>
 
             <button class="btn" name="book" form="bookingForm">
-                Submit Appointment Request
+                <?php echo $reschedule_id ? "Submit Reschedule Request" : "Submit Appointment Request"; ?>
             </button>
         </div>
     </div>
