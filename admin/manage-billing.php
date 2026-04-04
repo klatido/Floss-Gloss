@@ -23,7 +23,7 @@ $user_id = (int)$_SESSION['user_id'];
 /* --------------------------------------------------
    HELPERS
 -------------------------------------------------- */
-function safeDateFormat(?string $date, string $format = 'n/j/Y'): string {
+function safeDateFormat(?string $date, string $format = 'd/m/y'): string {
     if (!$date) return 'N/A';
     $timestamp = strtotime($date);
     return $timestamp ? date($format, $timestamp) : 'N/A';
@@ -99,6 +99,8 @@ $billing_sql = "
         a.payment_status,
         a.requested_date,
         a.final_date,
+        a.requested_start_time,
+        a.final_start_time,
 
         p.payment_id,
         p.amount AS payment_amount,
@@ -164,6 +166,8 @@ if ($billing_result) {
 
         /* BILLING DATE MUST FOLLOW APPOINTMENT DATE */
         $billing_date = $row['final_date'] ?: $row['requested_date'];
+        $billing_time_raw = $row['final_start_time'] ?: $row['requested_start_time'];
+        $billing_time = $billing_time_raw ? date('h:i A', strtotime($billing_time_raw)) : 'No time';
 
         /* DISPLAY STATUS SHOULD FOLLOW APPOINTMENT PAYMENT STATUS */
         $display_payment_status = $payment_status;
@@ -174,6 +178,7 @@ if ($billing_result) {
         $row['patient_name'] = $patient_name;
         $row['service_name'] = $service_name;
         $row['display_date'] = $billing_date;
+        $row['display_time'] = $billing_time;
         $row['display_status'] = ucfirst($display_payment_status);
         $row['amount_formatted'] = moneyFormat($amount);
         $row['computed_amount'] = $amount;
@@ -749,7 +754,7 @@ include("../includes/admin-sidebar.php");
                             <th>Appointment ID</th>
                             <th>Patient</th>
                             <th>Service</th>
-                            <th>Date</th>
+                            <th>Date &amp; Time</th>
                             <th>Amount</th>
                             <th>Payment Status</th>
                         </tr>
@@ -762,8 +767,11 @@ include("../includes/admin-sidebar.php");
                                 <tr data-status="<?php echo htmlspecialchars($status); ?>">
                                     <td><?php echo htmlspecialchars($transaction['appointment_label']); ?></td>
                                     <td><?php echo htmlspecialchars($transaction['patient_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($transaction['service_name']); ?></td>
-                                    <td><?php echo htmlspecialchars(safeDateFormat($transaction['display_date'], 'n/j/Y')); ?></td>
+                                    <td><?php echo htmlspecialchars($transaction['service_name']); ?></td>                               
+                                    <td>
+                                    <?php echo htmlspecialchars(safeDateFormat($transaction['display_date'], 'd/m/y')); ?><br>
+                                    <span class="muted"><?php echo htmlspecialchars($transaction['display_time'] ?? 'No time'); ?></span>
+                                    </td>
                                     <td><span class="amount-text"><?php echo htmlspecialchars($transaction['amount_formatted']); ?></span></td>
                                     <td>
                                         <span class="status-pill <?php echo htmlspecialchars($status); ?>">
@@ -814,7 +822,7 @@ include("../includes/admin-sidebar.php");
 
                             <div class="recent-right">
                                 <div class="recent-amount"><?php echo htmlspecialchars($verified['amount_formatted']); ?></div>
-                                <div class="recent-date"><?php echo htmlspecialchars(safeDateFormat($verified['display_date'], 'n/j/Y')); ?></div>
+                                <div class="recent-date"><?php echo htmlspecialchars(safeDateFormat($verified['display_date'], 'd/m/y')); ?></div>
                             </div>
                         </div>
                     <?php endforeach; ?>
