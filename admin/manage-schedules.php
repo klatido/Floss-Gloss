@@ -245,6 +245,48 @@ if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
 }
 
 /* --------------------------------------------------
+   UNBLOCK SELECTED DATE FOR ALL DENTISTS
+-------------------------------------------------- */
+if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unblock_date'])) {
+    $unblock_date = $_POST['unblock_date_value'] ?? $selected_date;
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $unblock_date)) {
+        $message = 'Invalid date selected.';
+        $message_type = 'error';
+    } else {
+        $delete_sql = "
+            DELETE FROM dentist_schedule_blocks
+            WHERE block_date = ?
+              AND start_time IS NULL
+              AND end_time IS NULL
+        ";
+        $delete_stmt = mysqli_prepare($conn, $delete_sql);
+
+        if ($delete_stmt) {
+            mysqli_stmt_bind_param($delete_stmt, "s", $unblock_date);
+
+            if (mysqli_stmt_execute($delete_stmt)) {
+                if (mysqli_stmt_affected_rows($delete_stmt) > 0) {
+                    $message = 'Selected date unblocked successfully.';
+                    $message_type = 'success';
+                } else {
+                    $message = 'No full-day block found for the selected date.';
+                    $message_type = 'error';
+                }
+            } else {
+                $message = 'Failed to unblock the selected date.';
+                $message_type = 'error';
+            }
+
+            mysqli_stmt_close($delete_stmt);
+        } else {
+            $message = 'Something went wrong while unblocking the selected date.';
+            $message_type = 'error';
+        }
+    }
+}
+
+/* --------------------------------------------------
    CHECK IF SELECTED DATE IS BLOCKED
 -------------------------------------------------- */
 $is_selected_date_blocked = false;
@@ -1103,9 +1145,16 @@ include("../includes/admin-sidebar.php");
 
                 <?php if ($canManageSchedules): ?>
                     <form method="POST" class="block-date-form">
-                        <input type="hidden" name="block_date" value="1">
-                        <input type="hidden" name="block_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
-                        <button type="submit" class="block-date-btn">🗑️&nbsp; Block Selected Date</button>
+                        <?php if ($is_selected_date_blocked): ?>
+                            <input type="hidden" name="unblock_date" value="1">
+                            <input type="hidden" name="unblock_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
+                            <button type="submit" class="block-date-btn">🔓&nbsp; Unblock Selected Date</button>
+                        <?php else: ?>
+                            <input type="hidden" name="block_date" value="1">
+                            <input type="hidden" name="block_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
+                            <button type="submit" class="block-date-btn">🗑️&nbsp; Block Selected Date</button>
+                        <?php endif; ?>
+
                         <div class="small-note">
                             Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
                             <?php if ($is_selected_date_blocked): ?>
