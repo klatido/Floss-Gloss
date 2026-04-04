@@ -137,7 +137,7 @@ if (isset($_GET['message'])) {
             break;
 
         case 'invalid_payment':
-            $toast_message = 'Invalid payment action';
+            $toast_message = 'Payment can only be verified for approved or completed appointments';
             $toast_class = 'error';
             break;
 
@@ -922,14 +922,17 @@ if (isset($_GET['message'])) {
                 <a class="btn-reject" href="update-status.php?id=${id}&status=rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
                 <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
             `;
-        } else if (statusLower === 'approved') {
+        } else if (statusLower === 'approved' || statusLower === 'completed') {
             let actions = '';
 
             if (paymentLower !== 'verified') {
                 actions += `<a class="btn-verify" href="update-status.php?id=${id}&status=verify_payment" onclick="return confirm('Verify payment for this appointment?')">Verify Payment</a>`;
             }
 
-            actions += `<a class="btn-complete" href="update-status.php?id=${id}&status=completed" onclick="return confirm('Mark this appointment as completed?')">Mark as Completed</a>`;
+            if (statusLower === 'approved') {
+                actions += `<a class="btn-complete" href="update-status.php?id=${id}&status=completed" onclick="return confirm('Mark this appointment as completed?')">Mark as Completed</a>`;
+            }
+
             actions += `<button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>`;
 
             modalActions.innerHTML = actions;

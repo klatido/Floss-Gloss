@@ -752,7 +752,6 @@ include("../includes/admin-sidebar.php");
                             <th>Date</th>
                             <th>Amount</th>
                             <th>Payment Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -772,10 +771,7 @@ include("../includes/admin-sidebar.php");
                                             <?php echo htmlspecialchars(ucfirst($status)); ?>
                                         </span>
                                     </td>
-                                    <td>
-                                        <span class="muted">Manage in Appointments</span>
-                                    </td>
-                                </tr>
+                                    </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>

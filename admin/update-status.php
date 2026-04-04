@@ -71,7 +71,7 @@ $price = isset($appointment['price']) ? (float)$appointment['price'] : 0.00;
    VERIFY PAYMENT
 ========================================================= */
 if ($action === 'verify_payment') {
-    if ($old_status !== 'approved') {
+    if (!in_array($old_status, ['approved', 'completed'], true)) {
         header("Location: manage-appointments.php?message=invalid_payment");
         exit();
     }
