@@ -43,7 +43,7 @@ $services = [];
 $services_sql = "SELECT service_id, service_name, description, image_path, duration_minutes, price
                  FROM services
                  WHERE is_active = 1
-                 ORDER BY service_name ASC";
+                 ORDER BY service_id ASC"; // Ordered by ID to match your insertion order
 
 $services_stmt = mysqli_prepare($conn, $services_sql);
 mysqli_stmt_execute($services_stmt);
@@ -93,9 +93,13 @@ include("../includes/patient-navbar.php");
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 28px;
-
     width: 100%;
-    max-width: 1200px; /* 🔥 KEY FIX */
+    max-width: 1200px;
+}
+
+/* 🔥 MAGIC CSS TO CENTER THE 10th CARD ON THE BOTTOM ROW 🔥 */
+.service-card:nth-child(3n + 1):last-child {
+    grid-column: 2; /* Forces the orphaned item into the middle column */
 }
 
 /* CARD */
@@ -105,10 +109,13 @@ include("../includes/patient-navbar.php");
     border-radius: 22px;
     padding: 28px;
     transition: 0.2s;
+    display: flex; /* Added flex to push button to the bottom if descriptions vary in length */
+    flex-direction: column;
 }
 
 .service-card:hover {
     transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Added slight shadow on hover for a premium feel */
 }
 
 /* HEADER */
@@ -122,6 +129,7 @@ include("../includes/patient-navbar.php");
 .card-header h3 {
     margin: 0;
     font-size: 20px;
+    color: #0b2454;
 }
 
 /* BADGE */
@@ -131,12 +139,15 @@ include("../includes/patient-navbar.php");
     border-radius: 999px;
     font-size: 13px;
     background: #f9fafb;
+    white-space: nowrap;
 }
 
 /* DESCRIPTION */
 .desc {
     color: #667085;
     margin-bottom: 20px;
+    flex-grow: 1; /* Pushes the price/duration details down */
+    line-height: 1.5;
 }
 
 /* DETAILS */
@@ -144,7 +155,11 @@ include("../includes/patient-navbar.php");
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
+    font-size: 15px;
 }
+
+.detail-row span { color: #64748b; }
+.detail-row strong { color: #0f172a; }
 
 /* BUTTON */
 .book-btn {
@@ -157,6 +172,7 @@ include("../includes/patient-navbar.php");
     font-weight: bold;
     margin-top: 15px;
     text-decoration: none;
+    transition: 0.2s;
 }
 
 .book-btn:hover {
@@ -173,18 +189,15 @@ include("../includes/patient-navbar.php");
     background: #f8fafc;
 }
 
-.service-image-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #64748b;
-    font-size: 13px;
-}
-
 /* RESPONSIVE */
 @media (max-width: 1000px) {
     .services-grid {
         grid-template-columns: 1fr;
+    }
+    
+    /* Reset the magic centering trick on mobile so it doesn't break the single column */
+    .service-card:nth-child(3n + 1):last-child {
+        grid-column: 1; 
     }
 }
 </style>
@@ -223,7 +236,17 @@ include("../includes/patient-navbar.php");
 
                     <div class="detail-row">
                         <span>Duration</span>
-                        <strong><?php echo $row['duration_minutes']; ?> mins</strong>
+                        <?php 
+                            // Quick PHP trick to display "X hours" instead of "180 mins" if it's a long surgery
+                            $mins = $row['duration_minutes'];
+                            if ($mins >= 60 && $mins % 60 == 0) {
+                                $hrs = $mins / 60;
+                                $duration_text = $hrs . ($hrs == 1 ? " hour" : " hours");
+                            } else {
+                                $duration_text = $mins . " mins";
+                            }
+                        ?>
+                        <strong><?php echo $duration_text; ?></strong>
                     </div>
 
                     <a href="book-appointment.php?service_id=<?php echo $row['service_id']; ?>" class="book-btn">
