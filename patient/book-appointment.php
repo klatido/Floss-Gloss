@@ -254,6 +254,15 @@ input {
     line-height: 1.25;
 }
 
+.right-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel .btn {
+    margin-top: auto;
+}
+
 @media (max-width: 1200px) {
     html, body {
         overflow: auto;
@@ -277,7 +286,7 @@ input {
         <div class="panel left-panel">
             <h3>Appointment Details</h3>
 
-            <form method="POST" class="booking-form">
+            <form method="POST" class="booking-form" id="bookingForm">
                 <div>
                     <label>Select Service</label>
                     <select name="service_id" id="service" onchange="updateSummary(); loadTimeSlots();" required>
@@ -323,8 +332,6 @@ input {
                         <option value="">Choose a time slot</option>
                     </select>
                 </div>
-
-                <button class="btn" name="book">Submit Appointment Request</button>
             </form>
         </div>
 
@@ -350,8 +357,11 @@ input {
                 <span>Time</span>
                 <strong id="sum_time">-</strong>
             </div>
-        </div>
 
+            <button class="btn" name="book" form="bookingForm">
+                Submit Appointment Request
+            </button>
+        </div>
     </div>
 </div>
 
