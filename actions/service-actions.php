@@ -25,13 +25,12 @@ if (isset($_POST['add'])) {
 
     $service_name = clean($_POST['service_name']);
     $description = clean($_POST['description']);
-    
+
     $image_path = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
 
         $upload_dir = "../assets/services/";
 
-        // siguraduhin may folder
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -49,7 +48,6 @@ if (isset($_POST['add'])) {
     $is_active = (int)($_POST['is_active'] ?? 1);
     $created_by = (int)$_SESSION['user_id'];
 
-    // validation
     if (
         $service_name === '' ||
         $description === '' ||
@@ -61,7 +59,7 @@ if (isset($_POST['add'])) {
     }
 
     $insert_sql = "
-        INSERT INTO services 
+        INSERT INTO services
         (service_name, description, image_path, duration_minutes, price, is_active, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ";
@@ -105,7 +103,7 @@ if (isset($_POST['update'])) {
     $service_id = (int)($_POST['service_id'] ?? 0);
     $service_name = clean($_POST['service_name']);
     $description = clean($_POST['description']);
-    
+
     $image_path = clean($_POST['existing_image'] ?? '');
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
 
@@ -127,7 +125,6 @@ if (isset($_POST['update'])) {
     $price = (float)($_POST['price'] ?? 0);
     $is_active = (int)($_POST['is_active'] ?? 1);
 
-    // validation
     if (
         $service_id <= 0 ||
         $service_name === '' ||
@@ -141,7 +138,7 @@ if (isset($_POST['update'])) {
 
     $update_sql = "
         UPDATE services
-        SET 
+        SET
             service_name = ?,
             description = ?,
             image_path = ?,
@@ -194,6 +191,75 @@ if (isset($_GET['delete'])) {
         exit();
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | CHECK IF SERVICE IS USED IN APPOINTMENTS
+    |----------------------------------------------------------------------
+    */
+    $check_sql = "SELECT COUNT(*) AS total FROM appointments WHERE service_id = ?";
+    $check_stmt = mysqli_prepare($conn, $check_sql);
+
+    if (!$check_stmt) {
+        header("Location: ../admin/manage-services.php?error=delete_failed");
+        exit();
+    }
+
+    mysqli_stmt_bind_param($check_stmt, "i", $service_id);
+    mysqli_stmt_execute($check_stmt);
+    $check_result = mysqli_stmt_get_result($check_stmt);
+    $check_row = $check_result ? mysqli_fetch_assoc($check_result) : null;
+    mysqli_stmt_close($check_stmt);
+
+    $used_count = (int)($check_row['total'] ?? 0);
+
+    /*
+    |----------------------------------------------------------------------
+    | IF USED IN APPOINTMENTS → DEACTIVATE INSTEAD
+    |----------------------------------------------------------------------
+    */
+    if ($used_count > 0) {
+        $deactivate_sql = "
+            UPDATE services
+            SET is_active = 0
+            WHERE service_id = ?
+        ";
+        $stmt = mysqli_prepare($conn, $deactivate_sql);
+
+        if (!$stmt) {
+            header("Location: ../admin/manage-services.php?error=delete_failed");
+            exit();
+        }
+
+        mysqli_stmt_bind_param($stmt, "i", $service_id);
+
+        if (mysqli_stmt_execute($stmt)) {
+            header("Location: ../admin/manage-services.php?success=deactivated");
+        } else {
+            header("Location: ../admin/manage-services.php?error=delete_failed");
+        }
+
+        mysqli_stmt_close($stmt);
+        exit();
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | IF NOT USED → SAFE DELETE
+    |----------------------------------------------------------------------
+    */
+    $image_path = '';
+    $image_sql = "SELECT image_path FROM services WHERE service_id = ? LIMIT 1";
+    $image_stmt = mysqli_prepare($conn, $image_sql);
+
+    if ($image_stmt) {
+        mysqli_stmt_bind_param($image_stmt, "i", $service_id);
+        mysqli_stmt_execute($image_stmt);
+        $image_result = mysqli_stmt_get_result($image_stmt);
+        $image_row = $image_result ? mysqli_fetch_assoc($image_result) : null;
+        $image_path = $image_row['image_path'] ?? '';
+        mysqli_stmt_close($image_stmt);
+    }
+
     $delete_sql = "DELETE FROM services WHERE service_id = ?";
     $stmt = mysqli_prepare($conn, $delete_sql);
 
@@ -205,6 +271,10 @@ if (isset($_GET['delete'])) {
     mysqli_stmt_bind_param($stmt, "i", $service_id);
 
     if (mysqli_stmt_execute($stmt)) {
+        if (!empty($image_path) && file_exists($image_path) && is_file($image_path)) {
+            @unlink($image_path);
+        }
+
         header("Location: ../admin/manage-services.php?success=deleted");
     } else {
         header("Location: ../admin/manage-services.php?error=delete_failed");

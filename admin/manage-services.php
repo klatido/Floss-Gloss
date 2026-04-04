@@ -497,7 +497,7 @@ include("../includes/admin-sidebar.php");
 
                                         <td>
                                             <a href="edit-service.php?service_id=<?php echo (int)$row['service_id']; ?>" class="icon-btn" title="Edit">✎</a>
-                                            <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service?');" title="Delete">🗑</a>
+                                            <a href="../actions/service-actions.php?delete=<?php echo (int)$row['service_id']; ?>" class="icon-btn delete" onclick="return confirm('Delete this service? If it is already used in appointments, it will be set to inactive instead.');" title="Delete">🗑</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -512,12 +512,23 @@ include("../includes/admin-sidebar.php");
             </div>
         </section>
 
-        <?php if (isset($_GET['success'])): ?>
+        <?php if (isset($_GET['success']) || isset($_GET['error'])): ?>
             <div class="toast">
                 <?php
-                    if ($_GET['success'] === 'added') echo 'Service added successfully!';
-                    elseif ($_GET['success'] === 'deleted') echo 'Service deleted successfully!';
-                    elseif ($_GET['success'] === 'updated') echo 'Service updated successfully!';
+                    if (isset($_GET['success'])) {
+                        if ($_GET['success'] === 'added') echo 'Service added successfully!';
+                        elseif ($_GET['success'] === 'deleted') echo 'Service deleted successfully!';
+                        elseif ($_GET['success'] === 'updated') echo 'Service updated successfully!';
+                        elseif ($_GET['success'] === 'deactivated') echo 'Service is already used in appointments, so it was set to inactive instead.';
+                    } elseif (isset($_GET['error'])) {
+                        if ($_GET['error'] === 'invalid_input') echo 'Please fill in all required fields correctly.';
+                        elseif ($_GET['error'] === 'invalid_id') echo 'Invalid service selected.';
+                        elseif ($_GET['error'] === 'prepare_failed') echo 'Something went wrong while preparing the request.';
+                        elseif ($_GET['error'] === 'insert_failed') echo 'Failed to add service.';
+                        elseif ($_GET['error'] === 'update_failed') echo 'Failed to update service.';
+                        elseif ($_GET['error'] === 'delete_failed') echo 'Failed to process service deletion.';
+                        else echo 'Something went wrong.';
+                    }
                 ?>
             </div>
         <?php endif; ?>
