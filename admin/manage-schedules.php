@@ -441,14 +441,18 @@ if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
                     $message = 'This new schedule conflicts with another active appointment.';
                     $message_type = 'error';
                 } else {
-                    $note = $admin_note !== '' ? $admin_note : 'Appointment rescheduled by admin/staff';
+                    if ($old_status === 'reschedule_requested') {
+                        $note = $admin_note !== '' ? $admin_note : 'Patient reschedule request approved by admin/staff';
+                    } else {
+                        $note = $admin_note !== '' ? $admin_note : 'Appointment rescheduled by admin/staff';
+                    }
 
                     $update_sql = "
                         UPDATE appointments
                         SET final_date = ?,
                             final_start_time = ?,
                             final_end_time = ?,
-                            status = 'rescheduled',
+                            status = 'approved',
                             approval_notes = ?,
                             last_updated_by = ?
                         WHERE appointment_id = ?
@@ -473,12 +477,17 @@ if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
                                 $conn,
                                 $appointment_id,
                                 $old_status,
-                                'rescheduled',
+                                'approved',
                                 $user_id,
                                 $note
                             );
 
-                            $message = 'Appointment rescheduled successfully.';
+                            if ($old_status === 'reschedule_requested') {
+                                $message = 'Reschedule request accepted successfully.';
+                            } else {
+                                $message = 'Appointment schedule updated successfully.';
+                            }
+
                             $message_type = 'success';
                         } else {
                             $message = 'Failed to reschedule appointment.';
