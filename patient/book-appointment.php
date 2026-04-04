@@ -283,8 +283,7 @@ function updateSummary() {
 
     <div class="nav-right">
         <div class="user">
-            <strong><?= $user['first_name'] . ' ' . $user['last_name'] ?></strong><br>
-            <span>Patient</span>
+            <strong><?= $user['first_name'] . ' ' . $user['last_name'] ?></strong>
         </div>
         <a href="../auth/logout.php" class="logout">Logout</a>
     </div>
