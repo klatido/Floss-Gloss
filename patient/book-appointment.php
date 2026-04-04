@@ -71,6 +71,16 @@ if (isset($_POST['book'])) {
         die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Error: This appointment extends past our 5:00 PM closing time.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back and select an earlier time</a></h3></div>");
     }
 
+    // SECURITY: Double check they aren't overlapping the 12-1 PM Lunch Break
+    $start_ts = strtotime($time);
+    $end_ts = strtotime($end_time);
+    $lunch_start = strtotime('12:00:00');
+    $lunch_end = strtotime('13:00:00');
+
+    if ($start_ts < $lunch_end && $end_ts > $lunch_start) {
+        die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Error: This appointment overlaps with the clinic's 12:00 PM - 1:00 PM lunch break.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back and select another time</a></h3></div>");
+    }
+
     $today_date = date('Y-m-d');
     if ($date < $today_date) {
         die("<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f7fb;'><h3 style='padding:40px; color:#991b1b; background:#fee2e2; border-radius:12px; font-family:sans-serif; text-align:center;'>Security Error: You cannot book an appointment in the past.<br><br><a href='book-appointment.php' style='color:#1e40af;'>Go back to the booking form</a></h3></div>");
@@ -475,15 +485,30 @@ function loadTimeSlots() {
         duration = parseInt(sSelect.options[sSelect.selectedIndex].getAttribute("data-duration")) || 60;
     }
 
-    let endHour = (duration >= 120) ? 15 : 16;
+    // --- DYNAMIC 5:00 PM CLOSING TIME CALCULATION ---
+    let durationHours = duration / 60;
+    let endHour = 17 - durationHours; // Clinic closes at 17 (5 PM).
 
     for (let h = 9; h <= endHour; h++) {
+        let appointmentEnd = h + durationHours;
         let timeStr = `${String(h).padStart(2,'0')}:00`;
         let displayTime = h < 12 ? `${h}:00 AM` : (h === 12 ? `12:00 PM` : `${h - 12}:00 PM`);
 
         let opt = document.createElement("option");
         opt.value = timeStr;
-        opt.text = displayTime;
+
+        // --- LUNCH BREAK LOGIC ---
+        if (h === 12) {
+            opt.text = "12:00 PM - Lunch Break";
+            opt.disabled = true;
+        } else if (h < 13 && appointmentEnd > 12) {
+            // Blocks appointments that would drag into lunch time!
+            opt.text = `${displayTime} - Overlaps Lunch`;
+            opt.disabled = true;
+        } else {
+            opt.text = displayTime;
+        }
+
         select.appendChild(opt);
     }
 }
