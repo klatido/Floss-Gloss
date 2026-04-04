@@ -263,7 +263,7 @@ include("../includes/admin-sidebar.php");
 
         <section class="panel">
             <div class="service-form-wrap">
-                <form method="POST" action="../actions/service-actions.php">
+                <form method="POST" action="../actions/service-actions.php" enctype="multipart/form-data">
                     <input type="hidden" name="update" value="1">
                     <input type="hidden" name="service_id" value="<?php echo (int)$service['service_id']; ?>">
 
@@ -310,7 +310,23 @@ include("../includes/admin-sidebar.php");
                         </div>
 
                         <div class="form-group full">
-                            <label>Description</label>
+                        <label>Current Image</label><br>
+
+                        <?php if (!empty($service['image_path'])): ?>
+                            <img src="<?php echo htmlspecialchars($service['image_path']); ?>" 
+                                style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid #ddd;">
+                        <?php else: ?>
+                            <span style="color:#888;">No image</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="form-group full">
+                        <label>Change Image</label>
+                        <input type="file" name="image" accept="image/*">
+                    </div>
+
+                    <!-- IMPORTANT: keep old image -->
+                    <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($service['image_path']); ?>">
                             <textarea name="description" required><?php echo htmlspecialchars($service['description'] ?? ''); ?></textarea>
                         </div>
                     </div>

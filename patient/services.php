@@ -173,6 +173,14 @@ include("../includes/patient-navbar.php");
     background: #f8fafc;
 }
 
+.service-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 13px;
+}
+
 /* RESPONSIVE */
 @media (max-width: 1000px) {
     .services-grid {

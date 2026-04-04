@@ -52,25 +52,20 @@ if ($admin_result && mysqli_num_rows($admin_result) > 0) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| APPOINTMENTS QUERY
-|--------------------------------------------------------------------------
-| Assumptions:
-| - patient_profiles has first_name and last_name
-| - services has service_name and price
-| - dentist_id is stored in appointments, but dentist table was not provided
-| - so dentist is temporarily shown as "Dentist #<id>"
-*/
+/* --------------------------------------------------------------------------
+   APPOINTMENTS QUERY
+-------------------------------------------------------------------------- */
 $query = "
     SELECT 
         a.*,
         s.service_name,
         s.price,
-        TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name
+        TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
+        TRIM(CONCAT(COALESCE(dp.first_name, ''), ' ', COALESCE(dp.last_name, ''))) AS dentist_name
     FROM appointments a
     LEFT JOIN services s ON a.service_id = s.service_id
     LEFT JOIN patient_profiles pp ON a.patient_id = pp.patient_id
+    LEFT JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
     ORDER BY a.requested_date ASC, a.requested_start_time ASC
 ";
 $result = mysqli_query($conn, $query);
@@ -85,6 +80,12 @@ if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
         if (trim($row['patient_name'] ?? '') === '') {
             $row['patient_name'] = 'Patient #' . ($row['patient_id'] ?? 'N/A');
+        }
+
+        if (trim($row['dentist_name'] ?? '') === '') {
+            $row['dentist_name'] = !empty($row['dentist_id']) ? 'Dentist #' . $row['dentist_id'] : 'Not assigned';
+        } else {
+            $row['dentist_name'] = 'Dr. ' . preg_replace('/\s+/', ' ', trim($row['dentist_name']));
         }
 
         $appointments[] = $row;
@@ -120,8 +121,23 @@ if (isset($_GET['message'])) {
             $toast_class = 'success';
             break;
 
+        case 'completed':
+            $toast_message = 'Appointment marked as completed';
+            $toast_class = 'success';
+            break;
+
+        case 'payment_verified':
+            $toast_message = 'Payment verified successfully';
+            $toast_class = 'success';
+            break;
+
         case 'invalid_status':
             $toast_message = 'Invalid appointment action';
+            $toast_class = 'error';
+            break;
+
+        case 'invalid_payment':
+            $toast_message = 'Invalid payment action';
             $toast_class = 'error';
             break;
 
@@ -132,6 +148,16 @@ if (isset($_GET['message'])) {
 
         case 'already_updated':
             $toast_message = 'Appointment was already updated';
+            $toast_class = 'error';
+            break;
+
+        case 'already_verified':
+            $toast_message = 'Payment already verified';
+            $toast_class = 'error';
+            break;
+
+        case 'complete_not_allowed':
+            $toast_message = 'Only approved appointments can be marked as completed';
             $toast_class = 'error';
             break;
 
@@ -370,9 +396,8 @@ if (isset($_GET['message'])) {
     }
 
     .badge-completed {
-        background: #ffffff;
-        color: #111827;
-        border: 1px solid #d1d5db;
+        background: #dcfce7;
+        color: #166534;
     }
 
     .badge-rejected {
@@ -381,13 +406,18 @@ if (isset($_GET['message'])) {
     }
 
     .badge-verified {
-        background: #020617;
+        background: #0ea5a0;
         color: #ffffff;
     }
 
     .badge-paid-pending {
-        background: #eef2f7;
-        color: #111827;
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-paid-rejected {
+        background: #fee2e2;
+        color: #991b1b;
     }
 
     .view-btn {
@@ -424,7 +454,7 @@ if (isset($_GET['message'])) {
 
     .modal-card {
         width: 100%;
-        max-width: 680px;
+        max-width: 720px;
         background: #fff;
         border-radius: 18px;
         border: 1px solid #e5e7eb;
@@ -495,6 +525,8 @@ if (isset($_GET['message'])) {
 
     .btn-approve,
     .btn-reject,
+    .btn-complete,
+    .btn-verify,
     .btn-close {
         border-radius: 12px;
         padding: 12px 20px;
@@ -518,6 +550,18 @@ if (isset($_GET['message'])) {
         border: none;
     }
 
+    .btn-complete {
+        background: #16a34a;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-verify {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+    }
+
     .btn-close {
         background: #fff;
         color: #111827;
@@ -526,22 +570,22 @@ if (isset($_GET['message'])) {
     }
 
     .toast {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    background: #ffffff;
-    border: 1px solid #dbe2ea;
-    border-radius: 14px;
-    padding: 16px 18px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
-    z-index: 5000;
-    min-width: 260px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        background: #ffffff;
+        border: 1px solid #dbe2ea;
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        z-index: 5000;
+        min-width: 260px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
     }
 
     .toast.success .toast-icon {
@@ -584,8 +628,6 @@ if (isset($_GET['message'])) {
             grid-template-columns: 1fr;
         }
     }
-
-
 </style>
 
 <div class="main-area">
@@ -676,16 +718,21 @@ if (isset($_GET['message'])) {
                                         $status_badge_class = 'badge-rejected';
                                     }
 
-                                    $payment_badge_class = ($payment_status === 'verified') ? 'badge-verified' : 'badge-paid-pending';
+                                    $payment_badge_class = 'badge-paid-pending';
+                                    if ($payment_status === 'verified') {
+                                        $payment_badge_class = 'badge-verified';
+                                    } elseif ($payment_status === 'rejected') {
+                                        $payment_badge_class = 'badge-paid-rejected';
+                                    }
 
-                                    $raw_date = $row['requested_date'] ?? '';
+                                    $raw_date = !empty($row['final_date']) ? $row['final_date'] : ($row['requested_date'] ?? '');
                                     $formatted_date = $raw_date ? date('n/j/Y', strtotime($raw_date)) : 'No date';
 
-                                    $raw_time = $row['requested_start_time'] ?? '';
+                                    $raw_time = !empty($row['final_start_time']) ? $row['final_start_time'] : ($row['requested_start_time'] ?? '');
                                     $formatted_time = $raw_time ? date('h:i A', strtotime($raw_time)) : 'No time';
 
                                     $price = isset($row['price']) ? (float)$row['price'] : 0;
-                                    $dentist_name = !empty($row['dentist_id']) ? 'Dentist #' . $row['dentist_id'] : 'Not assigned';
+                                    $dentist_name = $row['dentist_name'] ?? 'Not assigned';
                                 ?>
                                 <tr data-status="<?php echo htmlspecialchars($status); ?>">
                                     <td>
@@ -839,6 +886,7 @@ if (isset($_GET['message'])) {
     function getPaymentBadgeClass(status) {
         status = status.toLowerCase().trim();
         if (status === 'verified') return 'badge badge-verified';
+        if (status === 'rejected') return 'badge badge-paid-rejected';
         return 'badge badge-paid-pending';
     }
 
@@ -853,6 +901,9 @@ if (isset($_GET['message'])) {
         const payment = button.dataset.payment;
         const cost = button.dataset.cost;
 
+        const statusLower = status.toLowerCase().trim();
+        const paymentLower = payment.toLowerCase().trim();
+
         modalPatient.textContent = patient;
         modalService.textContent = service;
         modalDentist.textContent = dentist;
@@ -865,12 +916,23 @@ if (isset($_GET['message'])) {
         modalPaymentBadge.className = getPaymentBadgeClass(payment);
         modalPaymentBadge.textContent = payment;
 
-        if (status.toLowerCase().trim() === 'pending') {
+        if (statusLower === 'pending') {
             modalActions.innerHTML = `
-                <a class="btn-approve" href="update-status.php?id=${id}&status=Approved">Approve Appointment</a>
-                <a class="btn-reject" href="update-status.php?id=${id}&status=Rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
+                <a class="btn-approve" href="update-status.php?id=${id}&status=approved">Approve Appointment</a>
+                <a class="btn-reject" href="update-status.php?id=${id}&status=rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
                 <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
             `;
+        } else if (statusLower === 'approved') {
+            let actions = '';
+
+            if (paymentLower !== 'verified') {
+                actions += `<a class="btn-verify" href="update-status.php?id=${id}&status=verify_payment" onclick="return confirm('Verify payment for this appointment?')">Verify Payment</a>`;
+            }
+
+            actions += `<a class="btn-complete" href="update-status.php?id=${id}&status=completed" onclick="return confirm('Mark this appointment as completed?')">Mark as Completed</a>`;
+            actions += `<button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>`;
+
+            modalActions.innerHTML = actions;
         } else {
             modalActions.innerHTML = `
                 <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
@@ -907,15 +969,14 @@ if (isset($_GET['message'])) {
     });
 
     if (toastMessage) {
-    setTimeout(() => {
-        toastMessage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        toastMessage.style.opacity = '0';
-        toastMessage.style.transform = 'translateY(10px)';
-    }, 2500);
+        setTimeout(() => {
+            toastMessage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            toastMessage.style.opacity = '0';
+            toastMessage.style.transform = 'translateY(10px)';
+        }, 2500);
 
-    setTimeout(() => {
-        toastMessage.remove();
-    }, 3000);
+        setTimeout(() => {
+            toastMessage.remove();
+        }, 3000);
     }
-
 </script>
