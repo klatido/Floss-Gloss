@@ -30,14 +30,83 @@ $patient_result = mysqli_stmt_get_result($patient_stmt);
 
 if ($patient_result && mysqli_num_rows($patient_result) > 0) {
     $patient = mysqli_fetch_assoc($patient_result);
-    $patient_id = $patient['patient_id'];
+    $patient_id = (int)$patient['patient_id'];
 } else {
     die("Patient profile not found.");
 }
 
 /*
 |--------------------------------------------------------------------------
-| 2. Dashboard counts
+| 2. Cancel appointment handler
+|--------------------------------------------------------------------------
+*/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_appointment'])) {
+    $appointment_id = (int)($_POST['appointment_id'] ?? 0);
+
+    if ($appointment_id > 0) {
+        $check_sql = "SELECT appointment_id, status
+                      FROM appointments
+                      WHERE appointment_id = ?
+                        AND patient_id = ?
+                      LIMIT 1";
+        $check_stmt = mysqli_prepare($conn, $check_sql);
+        mysqli_stmt_bind_param($check_stmt, "ii", $appointment_id, $patient_id);
+        mysqli_stmt_execute($check_stmt);
+        $check_result = mysqli_stmt_get_result($check_stmt);
+        $appointment = ($check_result && mysqli_num_rows($check_result) > 0)
+            ? mysqli_fetch_assoc($check_result)
+            : null;
+        mysqli_stmt_close($check_stmt);
+
+        if ($appointment) {
+            $old_status = $appointment['status'];
+
+            if (in_array($old_status, ['pending', 'approved', 'rescheduled', 'reschedule_requested'])) {
+                $update_sql = "UPDATE appointments
+                               SET status = 'cancelled',
+                                   last_updated_by = ?
+                               WHERE appointment_id = ?
+                                 AND patient_id = ?
+                               LIMIT 1";
+                $update_stmt = mysqli_prepare($conn, $update_sql);
+                mysqli_stmt_bind_param($update_stmt, "iii", $user_id, $appointment_id, $patient_id);
+
+                if (mysqli_stmt_execute($update_stmt)) {
+                    mysqli_stmt_close($update_stmt);
+
+                    $history_sql = "INSERT INTO appointment_status_history
+                                    (appointment_id, old_status, new_status, action_by, action_notes)
+                                    VALUES (?, ?, 'cancelled', ?, ?)";
+                    $history_stmt = mysqli_prepare($conn, $history_sql);
+                    $note = "Appointment cancelled by patient";
+                    mysqli_stmt_bind_param($history_stmt, "isis", $appointment_id, $old_status, $user_id, $note);
+                    mysqli_stmt_execute($history_stmt);
+                    mysqli_stmt_close($history_stmt);
+
+                    header("Location: patient-dashboard.php?cancelled=1");
+                    exit();
+                } else {
+                    mysqli_stmt_close($update_stmt);
+                    header("Location: patient-dashboard.php?cancel_error=1");
+                    exit();
+                }
+            } else {
+                header("Location: patient-dashboard.php?cancel_invalid=1");
+                exit();
+            }
+        } else {
+            header("Location: patient-dashboard.php?cancel_invalid=1");
+            exit();
+        }
+    } else {
+        header("Location: patient-dashboard.php?cancel_invalid=1");
+        exit();
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| 3. Dashboard counts
 |--------------------------------------------------------------------------
 */
 $total = 0;
@@ -86,12 +155,12 @@ if ($upcoming_result) {
 
 /*
 |--------------------------------------------------------------------------
-| 3. Upcoming appointments list
+| 4. Active appointments list
 |--------------------------------------------------------------------------
 */
-$upcoming_list = [];
+$active_list = [];
 
-$upcoming_list_sql = "
+$active_list_sql = "
     SELECT 
         a.appointment_id,
         a.appointment_code,
@@ -104,25 +173,25 @@ $upcoming_list_sql = "
     INNER JOIN services s ON a.service_id = s.service_id
     INNER JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
     WHERE a.patient_id = ?
-      AND a.status IN ('approved', 'rescheduled')
+      AND a.status IN ('pending', 'approved', 'rescheduled', 'reschedule_requested')
       AND COALESCE(a.final_date, a.requested_date) >= CURDATE()
     ORDER BY appointment_date ASC, appointment_time ASC
-    LIMIT 5
+    LIMIT 10
 ";
-$upcoming_list_stmt = mysqli_prepare($conn, $upcoming_list_sql);
-mysqli_stmt_bind_param($upcoming_list_stmt, "i", $patient_id);
-mysqli_stmt_execute($upcoming_list_stmt);
-$upcoming_list_result = mysqli_stmt_get_result($upcoming_list_stmt);
+$active_list_stmt = mysqli_prepare($conn, $active_list_sql);
+mysqli_stmt_bind_param($active_list_stmt, "i", $patient_id);
+mysqli_stmt_execute($active_list_stmt);
+$active_list_result = mysqli_stmt_get_result($active_list_stmt);
 
-if ($upcoming_list_result) {
-    while ($row = mysqli_fetch_assoc($upcoming_list_result)) {
-        $upcoming_list[] = $row;
+if ($active_list_result) {
+    while ($row = mysqli_fetch_assoc($active_list_result)) {
+        $active_list[] = $row;
     }
 }
 
 /*
 |--------------------------------------------------------------------------
-| 4. Appointment history
+| 5. Appointment history
 |--------------------------------------------------------------------------
 */
 $history_list = [];
@@ -198,6 +267,110 @@ include("../includes/patient-header.php");
 include("../includes/patient-navbar.php");
 ?>
 
+<style>
+
+.action-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+/* RESCHEDULE */
+.btn-reschedule {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.btn-reschedule:hover {
+    background: #dbeafe;
+}
+
+/* CANCEL */
+.btn-cancel {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.btn-cancel:hover {
+    background: #fecaca;
+}
+
+/* spacing */
+.action-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.toast-message {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    min-width: 280px;
+    max-width: 380px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    animation: slideUpToast 0.3s ease;
+}
+
+.toast-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border-left: 6px solid #10b981;
+}
+
+.toast-error {
+    background: #fef2f2;
+    color: #7f1d1d;
+    border-left: 6px solid #ef4444;
+}
+
+@keyframes slideUpToast {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<?php if (isset($_GET['success'])): ?>
+    <div class="toast-message toast-success" id="toastMessage">
+        Appointment request submitted successfully.
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['cancelled'])): ?>
+    <div class="toast-message toast-success" id="toastMessage">
+        Appointment cancelled successfully.
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['cancel_error'])): ?>
+    <div class="toast-message toast-error" id="toastMessage">
+        Failed to cancel the appointment.
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['cancel_invalid'])): ?>
+    <div class="toast-message toast-error" id="toastMessage">
+        This appointment can no longer be cancelled.
+    </div>
+<?php endif; ?>
+
 <div class="page">
     <div class="welcome">
         <h1>Welcome back, <?php echo htmlspecialchars(trim($full_name)); ?>!</h1>
@@ -224,34 +397,47 @@ include("../includes/patient-navbar.php");
     <div class="section">
         <div class="section-header">
             <div>
-                <h2>Upcoming Appointments</h2>
-                <p>Your scheduled dental visits</p>
+                <h2>Active Appointments</h2>
+                <p>Your pending and upcoming dental visits</p>
             </div>
             <a href="book-appointment.php" class="btn-primary">Book New Appointment</a>
         </div>
 
-        <?php if (count($upcoming_list) > 0): ?>
-            <?php foreach ($upcoming_list as $row): ?>
-                <div class="appointment-card">
+        <?php if (count($active_list) > 0): ?>
+            <?php foreach ($active_list as $row): ?>
+                <div class="appointment-card" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
                     <div class="appointment-info">
                         <h4><?php echo htmlspecialchars($row['service_name']); ?></h4>
                         <div class="dentist">with Dr. <?php echo htmlspecialchars($row['dentist_name']); ?></div>
                         <div class="date"><?php echo htmlspecialchars(formatAppointmentDateTime($row['appointment_date'], $row['appointment_time'])); ?></div>
                     </div>
-                    <span class="<?php echo statusBadgeClass($row['status']); ?>">
-                        <?php echo htmlspecialchars(statusLabel($row['status'])); ?>
-                    </span>
-                    <?php if (in_array($row['status'], ['approved','rescheduled'])): ?>
-                        <a href="book-appointment.php?reschedule_id=<?php echo $row['appointment_id']; ?>" class="btn-secondary">
-                            Reschedule
-                        </a>
-                    <?php endif; ?>
+
+                    <div class="action-group">
+                        <span class="<?php echo statusBadgeClass($row['status']); ?>">
+                            <?php echo htmlspecialchars(statusLabel($row['status'])); ?>
+                        </span>
+
+                        <?php if (in_array($row['status'], ['approved', 'rescheduled'])): ?>
+                            <a href="book-appointment.php?reschedule_id=<?php echo $row['appointment_id']; ?>" class="action-btn btn-reschedule">
+                                Reschedule
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (in_array($row['status'], ['pending', 'approved', 'rescheduled', 'reschedule_requested'])): ?>
+                            <form method="POST" onsubmit="return confirm('Are you sure you want to cancel this appointment?');" style="margin:0;">
+                                <input type="hidden" name="appointment_id" value="<?php echo (int)$row['appointment_id']; ?>">
+                                <button type="submit" name="cancel_appointment" class="action-btn btn-cancel">
+                                    Cancel
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
             <div class="empty-state">
                 <div class="icon">🗓️</div>
-                <div>No upcoming appointments</div>
+                <div>No active appointments</div>
             </div>
         <?php endif; ?>
     </div>
@@ -294,5 +480,21 @@ include("../includes/patient-navbar.php");
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toast = document.getElementById("toastMessage");
+    if (toast) {
+        setTimeout(() => {
+            toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(-10px)";
+            setTimeout(() => {
+                if (toast) toast.remove();
+            }, 300);
+        }, 2500);
+    }
+});
+</script>
 
 <?php include("../includes/patient-footer.php"); ?>
