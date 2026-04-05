@@ -62,11 +62,7 @@ $formatted_dob = $patient['birth_date'] ? date('m/d/Y', strtotime($patient['birt
 
 $med_query = "
     SELECT 
-        mn.note_type,
-        mn.chief_complaint,
-        mn.diagnosis,
-        mn.treatment_plan,
-        mn.prescription,
+        mn.subject,
         mn.note_text,
         mn.created_at,
         u.role AS encoder_role,
@@ -79,7 +75,6 @@ $med_query = "
     LEFT JOIN staff_profiles sp ON u.user_id = sp.user_id
     LEFT JOIN dentist_profiles dp ON u.user_id = dp.user_id
     WHERE mn.patient_id = ?
-      AND mn.note_type IN ('medical_history', 'treatment_note', 'general_note', 'appointment_note')
     ORDER BY mn.created_at DESC
     LIMIT 1
 ";
@@ -107,12 +102,10 @@ if ($medical_record) {
         $record_added_by = 'Clinic Staff';
     }
 
-    $record_procedure = trim($medical_record['treatment_plan'] ?? '');
+    $record_procedure = trim($medical_record['subject'] ?? '');
+
     if ($record_procedure === '') {
-        $record_procedure = trim($medical_record['diagnosis'] ?? '');
-    }
-    if ($record_procedure === '') {
-        $record_procedure = trim($medical_record['chief_complaint'] ?? '');
+        $record_procedure = 'No subject specified.';
     }
     if ($record_procedure === '') {
         $record_procedure = 'No procedure specified.';
@@ -276,6 +269,29 @@ include("../includes/patient-navbar.php");
         background-color: #ffffff; border: 1px solid #cbd5e1;
         color: #111827; pointer-events: auto;
     }
+
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #16a34a;
+        color: white;
+        padding: 14px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+        z-index: 9999;
+    }
+
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
     .profile-input-wrapper input.editable-mode:focus { border-color: #0ea5a0; box-shadow: 0 0 0 3px rgba(14,165,160,0.1); }
 
     .profile-warning {
@@ -304,9 +320,7 @@ include("../includes/patient-navbar.php");
 
     <div class="profile-inner">
 
-    <?php if ($success_message): ?>
-        <div class="alert-success">✓ <?= $success_message ?></div>
-    <?php endif; ?>
+    
     <?php if ($error_message): ?>
         <div class="alert-error">⚠ <?= $error_message ?></div>
     <?php endif; ?>
@@ -400,7 +414,7 @@ include("../includes/patient-navbar.php");
                         </div>
                     </div>
 
-                    <div class="medical-record-label">Procedure</div>
+                    <div class="medical-record-label">Subject</div>
                     <div class="medical-record-value">
                         <?= htmlspecialchars($record_procedure) ?>
                     </div>
@@ -417,6 +431,7 @@ include("../includes/patient-navbar.php");
             <?php endif; ?>
         </div>
     </form>
+    <div id="toast" class="toast"></div>
 </div>
 
 <script>
@@ -459,6 +474,18 @@ include("../includes/patient-navbar.php");
         });
     });
 </script>
+
+<?php if ($success_message): ?>
+<script>
+    const toast = document.getElementById("toast");
+    toast.innerText = "✓ <?= $success_message ?>";
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+</script>
+<?php endif; ?>
 
 </div>
 
