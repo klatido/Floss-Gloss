@@ -81,6 +81,42 @@ function isValidClinicTimeRange(string $start_time, string $end_time): bool {
     return isset($slots[$start_time]) && $slots[$start_time] === $end_time;
 }
 
+function addMinutesToTime(string $time, int $minutes): string {
+    $base = strtotime('2000-01-01 ' . $time);
+    if ($base === false) return '';
+    return date('H:i:s', strtotime("+{$minutes} minutes", $base));
+}
+
+function isWithinClinicWindow(string $start_time, string $end_time): bool {
+    if ($start_time >= $end_time) return false;
+
+    $morning_ok = ($start_time >= '09:00:00' && $end_time <= '12:00:00');
+    $afternoon_ok = ($start_time >= '13:00:00' && $end_time <= '17:00:00');
+
+    return $morning_ok || $afternoon_ok;
+}
+
+function dentistHasApprovedAppointmentOnDate(mysqli $conn, int $dentist_id, string $date): bool {
+    $sql = "
+        SELECT appointment_id
+        FROM appointments
+        WHERE dentist_id = ?
+          AND status = 'approved'
+          AND COALESCE(final_date, requested_date) = ?
+        LIMIT 1
+    ";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) return false;
+
+    mysqli_stmt_bind_param($stmt, "is", $dentist_id, $date);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $exists = ($result && mysqli_num_rows($result) > 0);
+    mysqli_stmt_close($stmt);
+
+    return $exists;
+}
+
 function insertAppointmentHistory(
     mysqli $conn,
     int $appointment_id,
@@ -280,122 +316,116 @@ if ($dentists_result) {
 }
 
 /* --------------------------------------------------
-   BLOCK SELECTED DATE FOR ALL ACTIVE DENTISTS
+   BLOCK SELECTED DATE FOR ONE SELECTED DENTIST
 -------------------------------------------------- */
 if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['block_date'])) {
     $block_date = $_POST['block_date_value'] ?? $selected_date;
     $block_reason = trim($_POST['block_reason'] ?? 'Blocked by admin');
+    $selected_block_dentist_id = (int)($_POST['selected_dentist_id'] ?? 0);
 
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $block_date)) {
         $message = 'Invalid date selected.';
         $message_type = 'error';
+    } elseif ($selected_block_dentist_id <= 0 || !isset($dentists[$selected_block_dentist_id])) {
+        $message = 'Please select a doctor.';
+        $message_type = 'error';
+    } elseif (dentistHasApprovedAppointmentOnDate($conn, $selected_block_dentist_id, $block_date)) {
+        $message = 'This doctor already has an approved appointment on the selected date. Reschedule first before blocking.';
+        $message_type = 'error';
     } else {
-        $inserted_any = false;
+        $check_sql = "
+            SELECT block_id
+            FROM dentist_schedule_blocks
+            WHERE dentist_id = ?
+              AND block_date = ?
+              AND start_time IS NULL
+              AND end_time IS NULL
+            LIMIT 1
+        ";
+        $check_stmt = mysqli_prepare($conn, $check_sql);
 
-        foreach ($dentists as $dentist) {
-            if (empty($dentist['is_active_account'])) {
-                continue;
-            }
+        if ($check_stmt) {
+            mysqli_stmt_bind_param($check_stmt, "is", $selected_block_dentist_id, $block_date);
+            mysqli_stmt_execute($check_stmt);
+            $check_result = mysqli_stmt_get_result($check_stmt);
 
-            $dentist_id = (int)$dentist['dentist_id'];
+            if ($check_result && mysqli_num_rows($check_result) > 0) {
+                $message = 'Selected doctor is already blocked on that date.';
+                $message_type = 'error';
+            } else {
+                $insert_sql = "
+                    INSERT INTO dentist_schedule_blocks
+                    (dentist_id, block_date, start_time, end_time, reason, created_by)
+                    VALUES (?, ?, NULL, NULL, ?, ?)
+                ";
+                $insert_stmt = mysqli_prepare($conn, $insert_sql);
 
-            $check_sql = "
-                SELECT block_id
-                FROM dentist_schedule_blocks
-                WHERE dentist_id = ?
-                  AND block_date = ?
-                  AND start_time IS NULL
-                  AND end_time IS NULL
-                LIMIT 1
-            ";
-            $check_stmt = mysqli_prepare($conn, $check_sql);
+                if ($insert_stmt) {
+                    mysqli_stmt_bind_param($insert_stmt, "issi", $selected_block_dentist_id, $block_date, $block_reason, $user_id);
 
-            if ($check_stmt) {
-                mysqli_stmt_bind_param($check_stmt, "is", $dentist_id, $block_date);
-                mysqli_stmt_execute($check_stmt);
-                $check_result = mysqli_stmt_get_result($check_stmt);
-
-                if ($check_result && mysqli_num_rows($check_result) === 0) {
-                    $insert_sql = "
-                        INSERT INTO dentist_schedule_blocks
-                        (dentist_id, block_date, start_time, end_time, reason, created_by)
-                        VALUES (?, ?, NULL, NULL, ?, ?)
-                    ";
-                    $insert_stmt = mysqli_prepare($conn, $insert_sql);
-
-                    if ($insert_stmt) {
-                        mysqli_stmt_bind_param($insert_stmt, "issi", $dentist_id, $block_date, $block_reason, $user_id);
-                        if (mysqli_stmt_execute($insert_stmt)) {
-                            $inserted_any = true;
-                        }
-                        mysqli_stmt_close($insert_stmt);
+                    if (mysqli_stmt_execute($insert_stmt)) {
+                        $message = 'Doctor blocked successfully for the selected date.';
+                        $message_type = 'success';
+                    } else {
+                        $message = 'Failed to block selected doctor.';
+                        $message_type = 'error';
                     }
+
+                    mysqli_stmt_close($insert_stmt);
                 }
-
-                mysqli_stmt_close($check_stmt);
             }
-        }
 
-        if ($inserted_any) {
-            $message = 'Selected date blocked for active dentists.';
-            $message_type = 'success';
-        } else {
-            $message = 'Selected date is already blocked for active dentists.';
-            $message_type = 'error';
+            mysqli_stmt_close($check_stmt);
         }
     }
 }
 
 /* --------------------------------------------------
-   UNBLOCK SELECTED DATE FOR ALL DENTISTS
+   UNBLOCK SELECTED DATE FOR ONE SELECTED DENTIST
 -------------------------------------------------- */
 if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unblock_date'])) {
     $unblock_date = $_POST['unblock_date_value'] ?? $selected_date;
+    $selected_block_dentist_id = (int)($_POST['selected_dentist_id'] ?? 0);
 
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $unblock_date)) {
         $message = 'Invalid date selected.';
         $message_type = 'error';
+    } elseif ($selected_block_dentist_id <= 0) {
+        $message = 'Please select a doctor.';
+        $message_type = 'error';
     } else {
         $delete_sql = "
             DELETE FROM dentist_schedule_blocks
-            WHERE block_date = ?
+            WHERE dentist_id = ?
+              AND block_date = ?
               AND start_time IS NULL
               AND end_time IS NULL
         ";
         $delete_stmt = mysqli_prepare($conn, $delete_sql);
 
         if ($delete_stmt) {
-            mysqli_stmt_bind_param($delete_stmt, "s", $unblock_date);
+            mysqli_stmt_bind_param($delete_stmt, "is", $selected_block_dentist_id, $unblock_date);
 
-            if (mysqli_stmt_execute($delete_stmt)) {
-                if (mysqli_stmt_affected_rows($delete_stmt) > 0) {
-                    $message = 'Selected date unblocked successfully.';
-                    $message_type = 'success';
-                } else {
-                    $message = 'No full-day block found for the selected date.';
-                    $message_type = 'error';
-                }
+            if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
+                $message = 'Doctor unblocked successfully.';
+                $message_type = 'success';
             } else {
-                $message = 'Failed to unblock the selected date.';
+                $message = 'No block found for that doctor on the selected date.';
                 $message_type = 'error';
             }
 
             mysqli_stmt_close($delete_stmt);
-        } else {
-            $message = 'Something went wrong while unblocking the selected date.';
-            $message_type = 'error';
         }
     }
 }
 
 /* --------------------------------------------------
-   RESCHEDULE APPOINTMENT
+   RESCHEDULE / ACCEPT RESCHEDULE APPOINTMENT
 -------------------------------------------------- */
 if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reschedule_appointment'])) {
     $appointment_id = (int)($_POST['appointment_id'] ?? 0);
     $new_date = trim($_POST['new_date'] ?? '');
     $new_start_time = trim($_POST['new_start_time'] ?? '');
-    $new_end_time = trim($_POST['new_end_time'] ?? '');
     $admin_note = trim($_POST['admin_note'] ?? '');
 
     if ($appointment_id <= 0) {
@@ -404,18 +434,20 @@ if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $new_date)) {
         $message = 'Please select a valid date.';
         $message_type = 'error';
-    } elseif ($new_start_time === '' || $new_end_time === '') {
-        $message = 'Please provide both start and end time.';
-        $message_type = 'error';
-    } elseif (!isValidClinicTimeRange($new_start_time, $new_end_time)) {
-        $message = 'Time must be within 9:00 AM–12:00 PM or 1:00 PM–5:00 PM only.';
+    } elseif ($new_start_time === '') {
+        $message = 'Please provide a valid start time.';
         $message_type = 'error';
     } else {
         $appointment_sql = "
-            SELECT appointment_id, dentist_id, status
-            FROM appointments
-            WHERE appointment_id = ?
-              AND status IN ('approved', 'reschedule_requested')
+            SELECT
+                a.appointment_id,
+                a.dentist_id,
+                a.status,
+                COALESCE(s.duration_minutes, 60) AS duration_minutes
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE a.appointment_id = ?
+              AND a.status IN ('approved', 'reschedule_requested')
             LIMIT 1
         ";
         $appointment_stmt = mysqli_prepare($conn, $appointment_sql);
@@ -433,8 +465,18 @@ if ($canManageSchedules && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
             } else {
                 $dentist_id = (int)$appointment_row['dentist_id'];
                 $old_status = $appointment_row['status'];
+                $duration_minutes = (int)($appointment_row['duration_minutes'] ?? 60);
 
-                if (dentistIsBlockedWholeDay($conn, $dentist_id, $new_date)) {
+                if ($duration_minutes <= 0) {
+                    $duration_minutes = 60;
+                }
+
+                $new_end_time = addMinutesToTime($new_start_time, $duration_minutes);
+
+                if ($new_end_time === '' || !isWithinClinicWindow($new_start_time, $new_end_time)) {
+                    $message = 'Selected start time does not fit the service duration within clinic hours.';
+                    $message_type = 'error';
+                } elseif (dentistIsBlockedWholeDay($conn, $dentist_id, $new_date)) {
                     $message = 'Selected dentist is blocked for the chosen date.';
                     $message_type = 'error';
                 } elseif (hasConflictingAppointment($conn, $dentist_id, $new_date, $new_start_time, $new_end_time, $appointment_id)) {
@@ -678,7 +720,7 @@ $approved_appointments = [];
 
 if ($canManageSchedules) {
     $requests_sql = "
-        SELECT
+    SELECT
             a.appointment_id,
             a.patient_id,
             a.service_id,
@@ -692,6 +734,7 @@ if ($canManageSchedules) {
             a.status,
             a.approval_notes,
             s.service_name,
+            COALESCE(s.duration_minutes, 60) AS duration_minutes,
             TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
             TRIM(CONCAT(COALESCE(dp.first_name, ''), ' ', COALESCE(dp.last_name, ''))) AS dentist_name
         FROM appointments a
@@ -711,9 +754,7 @@ if ($canManageSchedules) {
             $row['current_start'] = getDisplayStart($row);
             $row['current_end'] = getDisplayEnd($row);
 
-            if (($row['status'] ?? '') === 'reschedule_requested') {
-                $reschedule_requests[] = $row;
-            } elseif (($row['status'] ?? '') === 'approved') {
+            if (($row['status'] ?? '') === 'reschedule_requested' || ($row['status'] ?? '') === 'approved') {
                 $approved_appointments[] = $row;
             }
         }
@@ -1489,6 +1530,15 @@ include("../includes/admin-sidebar.php");
 
                 <?php if ($canManageSchedules): ?>
                     <form method="POST" class="block-date-form">
+                        <select name="selected_dentist_id" required style="width:100%; padding:12px 14px; border:1px solid #dbe2ea; border-radius:12px; background:#f8fafc; font-size:14px;">
+                            <option value="">Select doctor</option>
+                            <?php foreach ($dentists as $dentist): ?>
+                                <option value="<?php echo (int)$dentist['dentist_id']; ?>">
+                                    <?php echo htmlspecialchars($dentist['full_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
                         <?php if ($is_selected_date_blocked): ?>
                             <input type="hidden" name="unblock_date" value="1">
                             <input type="hidden" name="unblock_date_value" value="<?php echo htmlspecialchars($selected_date); ?>">
@@ -1502,7 +1552,7 @@ include("../includes/admin-sidebar.php");
                         <div class="small-note">
                             Selected date: <?php echo htmlspecialchars(date('F j, Y', $selected_ts)); ?>
                             <?php if ($is_selected_date_blocked): ?>
-                                — blocked
+                                — at least one doctor blocked
                             <?php endif; ?>
                         </div>
                     </form>
@@ -1608,8 +1658,8 @@ include("../includes/admin-sidebar.php");
 
         <?php if ($canManageSchedules): ?>
             <section class="panel section-block">
-                <h3>Accepted Appointments</h3>
-                <p class="panel-subtitle">Select an approved appointment, then choose a new date and fixed 1-hour time slot for the same doctor.</p>
+                <h3>Reschedule / Accept Request</h3>
+                <p class="panel-subtitle">Select an approved appointment or patient reschedule request, then choose a new valid date and time for the same doctor.</p>
 
                 <?php if (count($approved_appointments) > 0): ?>
                     <div class="simple-reschedule-wrap">
@@ -1634,6 +1684,8 @@ include("../includes/admin-sidebar.php");
                                             data-patient="<?php echo htmlspecialchars($item['patient_name']); ?>"
                                             data-service="<?php echo htmlspecialchars($item['service_name'] ?? 'Unknown Service'); ?>"
                                             data-dentist="<?php echo htmlspecialchars($item['dentist_name']); ?>"
+                                            data-dentist-id="<?php echo (int)$item['dentist_id']; ?>"
+                                            data-duration="<?php echo (int)($item['duration_minutes'] ?? 60); ?>"
                                             data-date="<?php echo htmlspecialchars(safeDateFormat($item['current_date'], 'F j, Y')); ?>"
                                             data-time="<?php echo htmlspecialchars(safeTimeFormat($item['current_start']) . ' - ' . safeTimeFormat($item['current_end'])); ?>"
                                         >
@@ -1664,11 +1716,6 @@ include("../includes/admin-sidebar.php");
                                     <label for="approved_new_start_time">Time Slot</label>
                                     <select name="new_start_time" id="approved_new_start_time" required>
                                         <option value="">Select time slot</option>
-                                        <?php foreach ($fixed_time_slots as $start => $end): ?>
-                                            <option value="<?php echo htmlspecialchars($start); ?>" data-end="<?php echo htmlspecialchars($end); ?>">
-                                                <?php echo htmlspecialchars(safeTimeFormat($start) . ' - ' . safeTimeFormat($end)); ?>
-                                            </option>
-                                        <?php endforeach; ?>
                                     </select>
                                 </div>
 
@@ -1694,10 +1741,9 @@ include("../includes/admin-sidebar.php");
                                 ></textarea>
                             </div>
 
-                            <div class="slot-helper-note">
-                                Available fixed slots only: 9–10 AM, 10–11 AM, 11–12 PM, 1–2 PM, 2–3 PM, 3–4 PM, 4–5 PM.
+                            <div class="slot-helper-note" id="slotHelperNote">
+                                Time slots adjust automatically based on the selected service duration.
                             </div>
-
                             <div class="action-buttons">
                                 <button type="submit" class="btn-primary">Reschedule Appointment</button>
                             </div>
@@ -1715,79 +1761,237 @@ include("../includes/admin-sidebar.php");
         <div style="flex: 1;"></div>
 
         <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const appointmentSelect = document.getElementById('approved_appointment_select');
-            const preview = document.getElementById('approvedAppointmentPreview');
-            const startTimeSelect = document.getElementById('approved_new_start_time');
-            const endTimeHidden = document.getElementById('approved_new_end_time');
-            const endTimeDisplay = document.getElementById('approved_new_end_time_display');
+document.addEventListener('DOMContentLoaded', function () {
+    const appointmentSelect = document.getElementById('approved_appointment_select');
+    const preview = document.getElementById('approvedAppointmentPreview');
+    const dateInput = document.getElementById('approved_new_date');
+    const startTimeSelect = document.getElementById('approved_new_start_time');
+    const endTimeHidden = document.getElementById('approved_new_end_time');
+    const endTimeDisplay = document.getElementById('approved_new_end_time_display');
+    const helperNote = document.getElementById('slotHelperNote');
 
-            function updateApprovedPreview() {
-                if (!appointmentSelect || !preview) return;
+    function formatTimeTo12Hour(value) {
+        if (!value) return '';
+        const parts = value.split(':');
+        let hour = parseInt(parts[0], 10);
+        const minute = parts[1] || '00';
+        const suffix = hour >= 12 ? 'PM' : 'AM';
 
-                const selectedOption = appointmentSelect.options[appointmentSelect.selectedIndex];
+        hour = hour % 12;
+        if (hour === 0) hour = 12;
 
-                if (!selectedOption || !selectedOption.value) {
-                    preview.innerHTML = `
-                        <strong>No appointment selected yet.</strong>
-                        <span>Choose one from the dropdown above.</span>
-                    `;
-                    return;
+        return `${hour}:${minute} ${suffix}`;
+    }
+
+    function addMinutesToTime(time, minutes) {
+        const [h, m, s] = time.split(':').map(Number);
+        const base = new Date(2000, 0, 1, h, m || 0, s || 0);
+        base.setMinutes(base.getMinutes() + minutes);
+
+        const hh = String(base.getHours()).padStart(2, '0');
+        const mm = String(base.getMinutes()).padStart(2, '0');
+        const ss = String(base.getSeconds()).padStart(2, '0');
+
+        return `${hh}:${mm}:${ss}`;
+    }
+
+    function updateApprovedPreview() {
+        if (!appointmentSelect || !preview) return;
+
+        const selectedOption = appointmentSelect.options[appointmentSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            preview.innerHTML = `
+                <strong>No appointment selected yet.</strong>
+                <span>Choose one from the dropdown above.</span>
+            `;
+            return;
+        }
+
+        const patient = selectedOption.getAttribute('data-patient') || 'Patient';
+        const service = selectedOption.getAttribute('data-service') || 'Service';
+        const dentist = selectedOption.getAttribute('data-dentist') || 'Dentist';
+        const date = selectedOption.getAttribute('data-date') || '';
+        const time = selectedOption.getAttribute('data-time') || '';
+        const duration = parseInt(selectedOption.getAttribute('data-duration') || '60', 10);
+
+        preview.innerHTML = `
+            <strong>${patient}</strong>
+            <span>${dentist} • ${service}</span>
+            <span>Current: ${date} • ${time}</span>
+            <span>Service duration: ${duration} minute(s)</span>
+        `;
+    }
+
+    function getSelectedDuration() {
+        if (!appointmentSelect) return 60;
+        const selectedOption = appointmentSelect.options[appointmentSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) return 60;
+        return parseInt(selectedOption.getAttribute('data-duration') || '60', 10);
+    }
+
+    function getSelectedDentistId() {
+        if (!appointmentSelect) return '';
+        const selectedOption = appointmentSelect.options[appointmentSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) return '';
+        return selectedOption.getAttribute('data-dentist-id') || '';
+    }
+
+    function updateEndTimeFromSelectedSlot() {
+        if (!startTimeSelect || !endTimeHidden || !endTimeDisplay) return;
+
+        const selectedStart = startTimeSelect.value;
+        if (!selectedStart) {
+            endTimeHidden.value = '';
+            endTimeDisplay.value = '';
+            return;
+        }
+
+        const duration = getSelectedDuration();
+        const computedEnd = addMinutesToTime(selectedStart, duration);
+
+        endTimeHidden.value = computedEnd;
+        endTimeDisplay.value = formatTimeTo12Hour(computedEnd);
+    }
+
+    async function loadApprovedTimeSlots() {
+        if (!appointmentSelect || !dateInput || !startTimeSelect) return;
+
+        startTimeSelect.innerHTML = `<option value="">Select time slot</option>`;
+        endTimeHidden.value = '';
+        endTimeDisplay.value = '';
+
+        const selectedOption = appointmentSelect.options[appointmentSelect.selectedIndex];
+        const selectedDate = dateInput.value;
+        const dentistId = getSelectedDentistId();
+        const duration = getSelectedDuration();
+        const appointmentId = selectedOption && selectedOption.value ? selectedOption.value : '';
+
+        if (!selectedDate || !dentistId || !appointmentId) {
+            if (helperNote) {
+                helperNote.textContent = 'Time slots adjust automatically based on the selected service duration.';
+            }
+            return;
+        }
+
+        let unavailableData = { full_day_blocked: false, unavailable_slots: [] };
+
+        try {
+            let url = `../patient/book-appointment.php?action=get_unavailable_slots`
+                + `&dentist_id=${encodeURIComponent(dentistId)}`
+                + `&date=${encodeURIComponent(selectedDate)}`
+                + `&duration=${encodeURIComponent(duration)}`
+                + `&exclude_appointment_id=${encodeURIComponent(appointmentId)}`;
+
+            const response = await fetch(url, { cache: 'no-store' });
+            unavailableData = await response.json();
+        } catch (error) {
+            console.error('Failed to load unavailable slots:', error);
+        }
+
+        if (unavailableData.full_day_blocked) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.text = 'No available time slots';
+            opt.disabled = true;
+            opt.selected = true;
+            startTimeSelect.appendChild(opt);
+
+            if (helperNote) {
+                helperNote.textContent = 'Selected doctor is blocked for the whole day.';
+            }
+
+            return;
+        }
+
+        const unavailableSlots = unavailableData.unavailable_slots || [];
+        const fixedSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+
+        for (const slot of fixedSlots) {
+            const slotStart = new Date(`2000-01-01T${slot}:00`);
+            const slotEnd = new Date(slotStart.getTime() + (duration * 60000));
+
+            const clinicClose = new Date('2000-01-01T17:00:00');
+            if (slotEnd > clinicClose) {
+                continue;
+            }
+
+            const lunchStart = new Date('2000-01-01T12:00:00');
+            const lunchEnd = new Date('2000-01-01T13:00:00');
+            if (slotStart < lunchEnd && slotEnd > lunchStart) {
+                continue;
+            }
+
+            let overlapsUnavailable = false;
+
+            for (const blocked of unavailableSlots) {
+                const blockedStart = new Date(`2000-01-01T${blocked}:00`);
+                const blockedEnd = new Date(blockedStart.getTime() + (60 * 60000));
+
+                if (slotStart < blockedEnd && slotEnd > blockedStart) {
+                    overlapsUnavailable = true;
+                    break;
                 }
-
-                const patient = selectedOption.getAttribute('data-patient') || 'Patient';
-                const service = selectedOption.getAttribute('data-service') || 'Service';
-                const dentist = selectedOption.getAttribute('data-dentist') || 'Dentist';
-                const date = selectedOption.getAttribute('data-date') || '';
-                const time = selectedOption.getAttribute('data-time') || '';
-
-                preview.innerHTML = `
-                    <strong>${patient}</strong>
-                    <span>${dentist} • ${service}</span>
-                    <span>Current: ${date} • ${time}</span>
-                `;
             }
 
-            function formatTimeTo12Hour(value) {
-                if (!value) return '';
-                const parts = value.split(':');
-                let hour = parseInt(parts[0], 10);
-                const minute = parts[1] || '00';
-                const suffix = hour >= 12 ? 'PM' : 'AM';
-
-                hour = hour % 12;
-                if (hour === 0) hour = 12;
-
-                return `${hour}:${minute} ${suffix}`;
+            if (overlapsUnavailable) {
+                continue;
             }
 
-            function updateEndTimeFromSlot() {
-                if (!startTimeSelect || !endTimeHidden || !endTimeDisplay) return;
+            const rawStart = `${slot}:00`;
+            const rawEnd = addMinutesToTime(rawStart, duration);
 
-                const selectedOption = startTimeSelect.options[startTimeSelect.selectedIndex];
+            const opt = document.createElement('option');
+            opt.value = rawStart;
+            opt.text = `${formatTimeTo12Hour(rawStart)} - ${formatTimeTo12Hour(rawEnd)}`;
+            startTimeSelect.appendChild(opt);
+        }
 
-                if (!selectedOption || !selectedOption.value) {
-                    endTimeHidden.value = '';
-                    endTimeDisplay.value = '';
-                    return;
-                }
+        if (startTimeSelect.options.length === 1) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.text = 'No available time slots';
+            opt.disabled = true;
+            opt.selected = true;
+            startTimeSelect.appendChild(opt);
 
-                const endValue = selectedOption.getAttribute('data-end') || '';
-                endTimeHidden.value = endValue;
-                endTimeDisplay.value = endValue ? formatTimeTo12Hour(endValue) : '';
+            if (helperNote) {
+                helperNote.textContent = `No valid slots available for this ${duration}-minute service.`;
             }
+            return;
+        }
 
-            if (appointmentSelect) {
-                appointmentSelect.addEventListener('change', updateApprovedPreview);
-                updateApprovedPreview();
-            }
+        if (helperNote) {
+            helperNote.textContent = `Showing valid slots for a ${duration}-minute service.`;
+        }
+    }
 
-            if (startTimeSelect) {
-                startTimeSelect.addEventListener('change', updateEndTimeFromSlot);
-                updateEndTimeFromSlot();
-            }
+    if (appointmentSelect) {
+        appointmentSelect.addEventListener('change', async function () {
+            updateApprovedPreview();
+            await loadApprovedTimeSlots();
+            updateEndTimeFromSelectedSlot();
         });
-        </script>
+
+        updateApprovedPreview();
+    }
+
+    if (dateInput) {
+        dateInput.addEventListener('change', async function () {
+            await loadApprovedTimeSlots();
+            updateEndTimeFromSelectedSlot();
+        });
+    }
+
+    if (startTimeSelect) {
+        startTimeSelect.addEventListener('change', updateEndTimeFromSelectedSlot);
+    }
+
+    if (appointmentSelect && dateInput && dateInput.value) {
+        loadApprovedTimeSlots().then(updateEndTimeFromSelectedSlot);
+    }
+});
+</script>
 
 
         <?php include("../includes/admin-footer.php"); ?>

@@ -131,7 +131,7 @@ $today_list_sql = "
     INNER JOIN services s ON a.service_id = s.service_id
     INNER JOIN dentist_profiles dp ON a.dentist_id = dp.dentist_id
     WHERE COALESCE(a.final_date, a.requested_date) = CURDATE()
-      AND a.status IN ('approved', 'rescheduled', 'completed')
+    AND a.status IN ('approved', 'completed')
     ORDER BY appointment_time ASC
     LIMIT 5
 ";

@@ -92,7 +92,7 @@ if ($result) {
         $total_count++;
 
         $status_lower = strtolower(trim($row['status'] ?? ''));
-        if ($status_lower === 'pending') {
+        if ($status_lower === 'pending' || $status_lower === 'reschedule_requested') {
             $pending_count++;
         } elseif ($status_lower === 'approved') {
             $approved_count++;
@@ -165,7 +165,11 @@ if (isset($_GET['message'])) {
             $toast_message = 'Something went wrong';
             $toast_class = 'error';
             break;
-    }
+        case 'accepted_reschedule':
+            $toast_message = 'Reschedule request accepted successfully';
+            $toast_class = 'success';
+            break;
+        }
 }
 ?>
 
@@ -685,6 +689,8 @@ if (isset($_GET['message'])) {
                         <option value="approved">Approved</option>
                         <option value="completed">Completed</option>
                         <option value="rejected">Rejected</option>
+                        <option value="reschedule_requested">Reschedule Requested</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </div>
@@ -714,8 +720,10 @@ if (isset($_GET['message'])) {
                                         $status_badge_class = 'badge-approved';
                                     } elseif ($status === 'completed') {
                                         $status_badge_class = 'badge-completed';
-                                    } elseif ($status === 'rejected') {
+                                    } elseif ($status === 'rejected' || $status === 'cancelled') {
                                         $status_badge_class = 'badge-rejected';
+                                    } elseif ($status === 'reschedule_requested') {
+                                        $status_badge_class = 'badge-pending';
                                     }
 
                                     $payment_badge_class = 'badge-paid-pending';
@@ -879,7 +887,7 @@ if (isset($_GET['message'])) {
         status = status.toLowerCase().trim();
         if (status === 'approved') return 'badge badge-approved';
         if (status === 'completed') return 'badge badge-completed';
-        if (status === 'rejected') return 'badge badge-rejected';
+        if (status === 'rejected' || status === 'cancelled') return 'badge badge-rejected';
         return 'badge badge-pending';
     }
 
@@ -891,59 +899,64 @@ if (isset($_GET['message'])) {
     }
 
     function openAppointmentModal(button) {
-        const id = button.dataset.id;
-        const patient = button.dataset.patient;
-        const service = button.dataset.service;
-        const dentist = button.dataset.dentist;
-        const date = button.dataset.date;
-        const time = button.dataset.time;
-        const status = button.dataset.status;
-        const payment = button.dataset.payment;
-        const cost = button.dataset.cost;
+    const id = button.dataset.id;
+    const patient = button.dataset.patient;
+    const service = button.dataset.service;
+    const dentist = button.dataset.dentist;
+    const date = button.dataset.date;
+    const time = button.dataset.time;
+    const status = button.dataset.status;
+    const payment = button.dataset.payment;
+    const cost = button.dataset.cost;
 
-        const statusLower = status.toLowerCase().trim();
-        const paymentLower = payment.toLowerCase().trim();
+    const statusLower = status.toLowerCase().trim();
+    const paymentLower = payment.toLowerCase().trim();
 
-        modalPatient.textContent = patient;
-        modalService.textContent = service;
-        modalDentist.textContent = dentist;
-        modalDateTime.textContent = `${date} at ${time}`;
-        modalCost.textContent = cost;
+    modalPatient.textContent = patient;
+    modalService.textContent = service;
+    modalDentist.textContent = dentist;
+    modalDateTime.textContent = `${date} at ${time}`;
+    modalCost.textContent = cost;
 
-        modalStatusBadge.className = getStatusBadgeClass(status);
-        modalStatusBadge.textContent = status;
+    modalStatusBadge.className = getStatusBadgeClass(status);
+    modalStatusBadge.textContent = status;
 
-        modalPaymentBadge.className = getPaymentBadgeClass(payment);
-        modalPaymentBadge.textContent = payment;
+    modalPaymentBadge.className = getPaymentBadgeClass(payment);
+    modalPaymentBadge.textContent = payment;
 
-        if (statusLower === 'pending') {
-            modalActions.innerHTML = `
-                <a class="btn-approve" href="update-status.php?id=${id}&status=approved">Approve Appointment</a>
-                <a class="btn-reject" href="update-status.php?id=${id}&status=rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
-                <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
-            `;
-        } else if (statusLower === 'approved' || statusLower === 'completed') {
-            let actions = '';
+    if (statusLower === 'pending') {
+        modalActions.innerHTML = `
+            <a class="btn-approve" href="update-status.php?id=${id}&status=approved">Approve Appointment</a>
+            <a class="btn-reject" href="update-status.php?id=${id}&status=rejected" onclick="return confirm('Reject this appointment?')">Reject</a>
+            <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
+        `;
+    } else if (statusLower === 'reschedule_requested') {
+        modalActions.innerHTML = `
+            <a class="btn-approve" href="update-status.php?id=${id}&status=accept_reschedule" onclick="return confirm('Accept this reschedule request?')">Accept Reschedule</a>
+            <a class="btn-reject" href="update-status.php?id=${id}&status=rejected" onclick="return confirm('Reject this reschedule request?')">Reject</a>
+            <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
+        `;
+    } else if (statusLower === 'approved' || statusLower === 'completed') {
+        let actions = '';
 
-            if (paymentLower !== 'verified') {
-                actions += `<a class="btn-verify" href="update-status.php?id=${id}&status=verify_payment" onclick="return confirm('Verify payment for this appointment?')">Verify Payment</a>`;
-            }
-
-            if (statusLower === 'approved') {
-                actions += `<a class="btn-complete" href="update-status.php?id=${id}&status=completed" onclick="return confirm('Mark this appointment as completed?')">Mark as Completed</a>`;
-            }
-
-            actions += `<button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>`;
-
-            modalActions.innerHTML = actions;
-        } else {
-            modalActions.innerHTML = `
-                <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
-            `;
+        if (paymentLower !== 'verified') {
+            actions += `<a class="btn-verify" href="update-status.php?id=${id}&status=verify_payment" onclick="return confirm('Verify payment for this appointment?')">Verify Payment</a>`;
         }
 
-        modal.classList.add('show');
+        if (statusLower === 'approved') {
+            actions += `<a class="btn-complete" href="update-status.php?id=${id}&status=completed" onclick="return confirm('Mark this appointment as completed?')">Mark as Completed</a>`;
+        }
+
+        actions += `<button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>`;
+        modalActions.innerHTML = actions;
+    } else {
+        modalActions.innerHTML = `
+            <button type="button" class="btn-close" onclick="closeAppointmentModal()">Close</button>
+        `;
     }
+
+    modal.classList.add('show');
+}
 
     function closeAppointmentModal() {
         modal.classList.remove('show');
