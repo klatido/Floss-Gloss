@@ -296,7 +296,6 @@ if ($action === 'approved' || $action === 'accept_reschedule') {
                 )
                 VALUES (?, ?, 'other', NULL, NULL, NULL, 'pending', NULL, NULL)
             ";
-            $insert_payment_stmt = mysqli_prepare($conn, $insert_payment_sql);
 
             if ($insert_payment_stmt) {
                 mysqli_stmt_bind_param($insert_payment_stmt, "id", $appointment_id, $price);
