@@ -612,6 +612,11 @@ if (isset($_GET['message'])) {
         flex-shrink: 0;
     }
 
+    .badge-paid-cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
     @media (max-width: 1100px) {
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -715,6 +720,10 @@ if (isset($_GET['message'])) {
                                     $status = strtolower(trim($row['status'] ?? 'pending'));
                                     $payment_status = strtolower(trim($row['payment_status'] ?? 'pending'));
 
+                                    if ($status === 'cancelled') {
+                                        $payment_status = 'cancelled';
+                                    }
+
                                     $status_badge_class = 'badge-pending';
                                     if ($status === 'approved') {
                                         $status_badge_class = 'badge-approved';
@@ -727,12 +736,15 @@ if (isset($_GET['message'])) {
                                     }
 
                                     $payment_badge_class = 'badge-paid-pending';
+
                                     if ($payment_status === 'verified') {
                                         $payment_badge_class = 'badge-verified';
                                     } elseif ($payment_status === 'rejected') {
                                         $payment_badge_class = 'badge-paid-rejected';
+                                    } elseif ($payment_status === 'cancelled') {
+                                        $payment_badge_class = 'badge-paid-cancelled';
                                     }
-
+                                    
                                     $raw_date = !empty($row['final_date']) ? $row['final_date'] : ($row['requested_date'] ?? '');
                                     $formatted_date = $raw_date ? date('n/j/Y', strtotime($raw_date)) : 'No date';
 
@@ -769,7 +781,7 @@ if (isset($_GET['message'])) {
 
                                     <td>
                                         <span class="badge <?php echo $payment_badge_class; ?>">
-                                            <?php echo htmlspecialchars($row['payment_status'] ?? 'pending'); ?>
+                                            <?php echo htmlspecialchars(ucfirst($payment_status)); ?>
                                         </span>
                                     </td>
 
@@ -784,7 +796,7 @@ if (isset($_GET['message'])) {
                                             data-date="<?php echo htmlspecialchars($formatted_date, ENT_QUOTES); ?>"
                                             data-time="<?php echo htmlspecialchars($formatted_time, ENT_QUOTES); ?>"
                                             data-status="<?php echo htmlspecialchars($row['status'] ?? 'Pending', ENT_QUOTES); ?>"
-                                            data-payment="<?php echo htmlspecialchars($row['payment_status'] ?? 'pending', ENT_QUOTES); ?>"
+                                            data-payment="<?php echo htmlspecialchars($payment_status, ENT_QUOTES); ?>"
                                             data-cost="₱<?php echo number_format($price, 0); ?>"
                                         >
                                             View
@@ -892,11 +904,13 @@ if (isset($_GET['message'])) {
     }
 
     function getPaymentBadgeClass(status) {
-        status = status.toLowerCase().trim();
-        if (status === 'verified') return 'badge badge-verified';
-        if (status === 'rejected') return 'badge badge-paid-rejected';
-        return 'badge badge-paid-pending';
-    }
+    status = status.toLowerCase().trim();
+
+    if (status === 'verified') return 'badge badge-verified';
+    if (status === 'rejected' || status === 'cancelled') return 'badge badge-paid-rejected';
+
+    return 'badge badge-paid-pending';
+}
 
     function openAppointmentModal(button) {
     const id = button.dataset.id;

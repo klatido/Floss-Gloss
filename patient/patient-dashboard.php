@@ -63,11 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_appointment'])
 
             if (in_array($old_status, ['pending', 'approved', 'rescheduled', 'reschedule_requested'])) {
                 $update_sql = "UPDATE appointments
-                               SET status = 'cancelled',
-                                   last_updated_by = ?
-                               WHERE appointment_id = ?
-                                 AND patient_id = ?
-                               LIMIT 1";
+               SET status = 'cancelled',
+                                payment_status = CASE
+                                    WHEN payment_status = 'verified' THEN 'verified'
+                                    ELSE 'cancelled'
+                                END,
+                                last_updated_by = ?
+                            WHERE appointment_id = ?
+                                AND patient_id = ?
+                            LIMIT 1";
                 $update_stmt = mysqli_prepare($conn, $update_sql);
                 mysqli_stmt_bind_param($update_stmt, "iii", $user_id, $appointment_id, $patient_id);
 
