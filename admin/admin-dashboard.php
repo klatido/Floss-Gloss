@@ -529,7 +529,7 @@ include("../includes/admin-sidebar.php");
                 <a href="manage-appointments.php" class="action-card"><span class="icon">🗓</span>Manage Appointments</a>
                 <a href="manage-services.php" class="action-card"><span class="icon">☑</span>Services</a>
                 <a href="manage-patients.php" class="action-card"><span class="icon">☺</span>Patients</a>
-                <a href="billing.php" class="action-card"><span class="icon">$</span>Billing</a>
+                <a href="manage-billing.php" class="action-card"><span class="icon">$</span>Billing</a>
             </div>
         </section>
 

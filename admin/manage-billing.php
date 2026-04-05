@@ -104,11 +104,11 @@ $billing_sql = "
 
         p.payment_id,
         p.amount AS payment_amount,
-        p.payment_method,
-        p.reference_number,
         p.payment_date,
         p.verification_status,
         p.created_at AS payment_created_at,
+        p.verified_by,
+        p.verification_notes,
 
         s.service_name,
         s.price AS service_price,
