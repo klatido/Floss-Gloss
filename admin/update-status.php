@@ -287,7 +287,6 @@ if ($action === 'approved' || $action === 'accept_reschedule') {
                 (
                     appointment_id,
                     amount,
-                    payment_method,
                     reference_number,
                     proof_image_path,
                     payment_date,
