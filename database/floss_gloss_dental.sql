@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Apr 05, 2026 at 05:26 AM
+-- Generation Time: Apr 05, 2026 at 10:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -53,12 +53,17 @@ CREATE TABLE `appointments` (
 --
 
 INSERT INTO `appointments` (`appointment_id`, `appointment_code`, `patient_id`, `service_id`, `dentist_id`, `requested_date`, `requested_start_time`, `requested_end_time`, `final_date`, `final_start_time`, `final_end_time`, `status`, `payment_status`, `approval_notes`, `created_by_patient`, `last_updated_by`, `created_at`, `updated_at`) VALUES
-(11, 'APP-1775340834', 1, 7, 1, '2026-04-12', '09:00:00', '10:00:00', '2026-04-13', '09:00:00', '10:00:00', 'completed', 'verified', 'Need po palitan', 2, 1, '2026-04-04 22:13:54', '2026-04-04 22:19:01'),
-(12, 'APP-1775340868', 1, 13, 1, '2026-04-13', '16:00:00', '17:00:00', NULL, NULL, NULL, 'cancelled', 'pending', NULL, 2, 2, '2026-04-04 22:14:28', '2026-04-04 23:44:29'),
-(13, 'APP-1775343794', 1, 9, 1, '2026-04-26', '15:00:00', '17:00:00', NULL, NULL, NULL, 'cancelled', 'pending', NULL, 2, 2, '2026-04-04 23:03:14', '2026-04-04 23:09:16'),
-(14, 'APP-1775344251', 1, 12, 1, '2026-04-06', '14:00:00', '15:00:00', NULL, NULL, NULL, 'cancelled', 'pending', NULL, 2, 2, '2026-04-04 23:10:51', '2026-04-04 23:21:13'),
-(15, 'APP-1775344928', 1, 13, 1, '2026-04-30', '16:00:00', '17:00:00', NULL, NULL, NULL, 'cancelled', 'pending', NULL, 2, 2, '2026-04-04 23:22:08', '2026-04-04 23:44:31'),
-(16, 'APP-1775347380', 1, 12, 1, '2026-04-30', '09:00:00', '10:00:00', NULL, NULL, NULL, 'pending', 'pending', NULL, 2, NULL, '2026-04-05 00:03:00', '2026-04-05 00:03:00');
+(1, 'APT-20260405-001', 1, 1, 1, '2026-04-01', '09:00:00', '10:00:00', '2026-04-01', '09:00:00', '10:00:00', 'completed', 'verified', 'Completed successfully.', 7, 5, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(2, 'APT-20260405-002', 2, 6, 1, '2026-04-02', '10:00:00', '11:00:00', '2026-04-02', '10:00:00', '11:00:00', 'completed', 'verified', 'Routine check-up completed.', 8, 6, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(3, 'APT-20260405-003', 3, 8, 2, '2026-04-05', '13:00:00', '14:00:00', '2026-04-05', '13:00:00', '14:00:00', 'approved', 'submitted', 'Approved for today.', 9, 5, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(4, 'APT-20260405-004', 4, 9, 3, '2026-04-05', '15:00:00', '16:00:00', NULL, NULL, NULL, 'cancelled', '', 'Awaiting staff review.', 10, 10, '2026-04-05 07:42:54', '2026-04-05 07:51:12'),
+(5, 'APT-20260405-005', 5, 10, 3, '2026-04-08', '09:00:00', '12:00:00', '2026-04-08', '09:00:00', '12:00:00', 'approved', 'pending', 'Root canal schedule confirmed.', 11, 6, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(6, 'APT-20260405-006', 6, 7, 2, '2026-04-10', '13:00:00', '16:00:00', '2026-04-10', '13:00:00', '16:00:00', 'approved', 'pending', 'Appointment approved by admin/staff', 12, 1, '2026-04-05 07:42:54', '2026-04-05 08:00:50'),
+(7, 'APT-20260405-007', 7, 4, 1, '2026-04-03', '16:00:00', '18:00:00', NULL, NULL, NULL, 'rejected', 'rejected', 'Requested slot exceeded clinic cutoff.', 13, 5, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(8, 'APT-20260405-008', 8, 2, 1, '2026-04-06', '11:00:00', '12:00:00', '2026-04-06', '11:00:00', '12:00:00', 'cancelled', 'rejected', 'Cancelled by patient.', 14, 14, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(9, 'APT-20260405-009', 9, 3, 3, '2026-04-12', '10:00:00', '11:00:00', '2026-04-12', '10:00:00', '11:00:00', 'completed', 'verified', 'Restoration booked.', 15, 1, '2026-04-05 07:42:54', '2026-04-05 07:45:47'),
+(10, 'APT-20260405-010', 10, 5, 2, '2026-04-05', '16:00:00', '18:00:00', '2026-04-05', '16:00:00', '18:00:00', 'completed', 'verified', 'Whitening session approved.', 16, 6, '2026-04-05 07:42:54', '2026-04-05 07:57:48'),
+(11, 'APP-1775375930', 1, 1, 2, '2026-04-06', '09:00:00', '10:00:00', '2026-04-06', '09:00:00', '10:00:00', 'completed', 'verified', 'Appointment approved by admin/staff', 7, 1, '2026-04-05 07:58:50', '2026-04-05 08:00:27');
 
 -- --------------------------------------------------------
 
@@ -81,17 +86,11 @@ CREATE TABLE `appointment_status_history` (
 --
 
 INSERT INTO `appointment_status_history` (`history_id`, `appointment_id`, `old_status`, `new_status`, `action_by`, `action_notes`, `action_at`) VALUES
-(16, 11, 'pending', 'approved', 1, 'Appointment approved by admin/staff', '2026-04-04 22:15:55'),
-(17, 12, 'pending', 'approved', 1, 'Appointment approved by admin/staff', '2026-04-04 22:15:59'),
-(18, 11, 'approved', 'approved', 1, 'Need po palitan', '2026-04-04 22:16:49'),
-(19, 11, 'approved', 'completed', 1, 'Appointment marked as completed by admin/staff', '2026-04-04 22:18:57'),
-(20, 13, 'pending', 'approved', 1, 'Appointment approved by admin/staff', '2026-04-04 23:04:39'),
-(21, 13, 'approved', 'cancelled', 2, 'Appointment cancelled by patient', '2026-04-04 23:09:16'),
-(22, 14, 'pending', 'cancelled', 2, 'Appointment cancelled by patient', '2026-04-04 23:21:13'),
-(23, 15, 'pending', 'approved', 1, 'Appointment approved by admin/staff', '2026-04-04 23:26:14'),
-(24, 15, 'approved', 'reschedule_requested', 2, 'Reschedule requested by patient', '2026-04-04 23:42:22'),
-(25, 12, 'reschedule_requested', 'cancelled', 2, 'Appointment cancelled by patient', '2026-04-04 23:44:29'),
-(26, 15, 'reschedule_requested', 'cancelled', 2, 'Appointment cancelled by patient', '2026-04-04 23:44:31');
+(1, 9, 'approved', 'completed', 1, 'Appointment marked as completed by admin/staff', '2026-04-05 07:45:43'),
+(2, 4, 'pending', 'cancelled', 10, 'Appointment cancelled by patient', '2026-04-05 07:51:12'),
+(3, 10, 'approved', 'completed', 6, 'Appointment marked as completed by admin/staff', '2026-04-05 07:57:48'),
+(4, 11, 'approved', 'completed', 1, 'Appointment marked as completed by admin/staff', '2026-04-05 08:00:14'),
+(5, 6, 'pending', 'approved', 1, 'Appointment approved by admin/staff', '2026-04-05 08:00:50');
 
 -- --------------------------------------------------------
 
@@ -118,8 +117,9 @@ CREATE TABLE `dentist_profiles` (
 --
 
 INSERT INTO `dentist_profiles` (`dentist_id`, `user_id`, `first_name`, `middle_name`, `last_name`, `specialization`, `license_number`, `bio`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 5, 'Miguel', 'Antonio', 'Santos', 'General Dentistry', 'PRC-DENT-2026-001', 'Dr. Miguel Antonio Santos is a general dentist handling routine consultations, oral exams, and preventive dental care.', 1, '2026-04-01 08:34:48', '2026-04-01 08:34:48'),
-(8, 15, 'Rafael', 'Santos', 'Mendoza', 'Oral Surgery', 'PRC-DENT-2026-003', 'Dr. Rafael Santos Mendoza specializes in tooth extraction, wisdom tooth surgery, and minor oral surgical procedures.', 1, '2026-04-05 01:58:25', '2026-04-05 01:58:25');
+(1, 2, 'Maria', 'Elena', 'Santos', 'General Dentistry', 'DENT-2026-001', 'Experienced general dentist focused on preventive care.', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(2, 3, 'Joshua', 'Miguel', 'Reyes', 'Orthodontics', 'DENT-2026-002', 'Handles braces, alignment, and long-term orthodontic care.', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(3, 4, 'Angela', 'Mae', 'Cruz', 'Endodontics', 'DENT-2026-003', 'Specializes in root canal and restorative treatments.', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54');
 
 -- --------------------------------------------------------
 
@@ -143,27 +143,8 @@ CREATE TABLE `dentist_schedule_blocks` (
 --
 
 INSERT INTO `dentist_schedule_blocks` (`block_id`, `dentist_id`, `block_date`, `start_time`, `end_time`, `reason`, `created_by`, `created_at`) VALUES
-(2, 1, '2026-04-08', NULL, NULL, 'Blocked by admin', 1, '2026-04-01 08:35:56'),
-(3, 1, '2026-04-05', NULL, NULL, 'Blocked by admin', 1, '2026-04-03 21:59:59'),
-(7, 1, '2026-05-01', NULL, NULL, 'Blocked by admin', 1, '2026-04-04 23:46:41');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `email_notifications`
---
-
-CREATE TABLE `email_notifications` (
-  `email_notification_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `appointment_id` int(11) DEFAULT NULL,
-  `email_type` enum('registration','appointment_requested','appointment_approved','appointment_rejected','appointment_rescheduled','appointment_cancelled','appointment_completed','payment_verified','general') NOT NULL,
-  `subject` varchar(255) NOT NULL,
-  `body` text DEFAULT NULL,
-  `send_status` enum('pending','sent','failed') NOT NULL DEFAULT 'pending',
-  `sent_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(1, 3, '2026-04-07', NULL, NULL, 'Blocked by admin', 1, '2026-04-05 07:46:08'),
+(3, 3, '2026-04-06', NULL, NULL, 'Blocked by admin', 6, '2026-04-05 07:54:57');
 
 -- --------------------------------------------------------
 
@@ -181,16 +162,6 @@ CREATE TABLE `medical_notes` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `medical_notes`
---
-
-INSERT INTO `medical_notes` (`note_id`, `patient_id`, `encoded_by`, `updated_by`, `subject`, `note_text`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 1, 'Tooth Canal', '67 67 67 67 hahahahahaa', '2026-03-31 19:18:29', '2026-04-05 02:52:22'),
-(2, 2, 6, NULL, 'Teeth', 'HHAHAH', '2026-04-01 08:56:46', '2026-04-01 08:56:46'),
-(3, 1, 1, NULL, 'HAHAHA', 'oi', '2026-04-05 00:11:51', '2026-04-05 00:11:51'),
-(5, 2, 1, 1, 'yoyoy', 'hey men 6767', '2026-04-05 03:04:19', '2026-04-05 03:17:02');
 
 -- --------------------------------------------------------
 
@@ -219,10 +190,16 @@ CREATE TABLE `patient_profiles` (
 --
 
 INSERT INTO `patient_profiles` (`patient_id`, `user_id`, `first_name`, `middle_name`, `last_name`, `sex`, `birth_date`, `address`, `emergency_contact_name`, `emergency_contact_phone`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 2, 'Ken Edward', 'Endaya', 'Latido', 'male', '2002-04-09', 'Unit 1507 Cityland Makati Executive Tower 4\r\n77 Sen. Gil Puyat, Pio Del Pilar', 'Harlene Bautista', '09090301830', NULL, '2026-03-31 09:11:38', '2026-03-31 09:11:38'),
-(2, 3, 'Harlene', 'Morcilla', 'Bautista', 'female', '2003-06-27', 'Unit 1507 Cityland Makati Executive Tower 477 Sen. Gil Puyat, Pio Del Pilar', 'Ken Edward Latido', '09777416394', '', '2026-03-31 18:23:53', '2026-04-05 03:25:21'),
-(3, 4, 'Kayenne', 'Trinidad', 'Trinidad', 'female', '2000-01-01', 'Manila', 'Alek Mendoza', '09123456789', NULL, '2026-04-01 03:46:34', '2026-04-01 03:46:34'),
-(4, 7, 'yeen', NULL, 't', 'prefer_not_to_say', '2004-06-15', NULL, NULL, NULL, NULL, '2026-04-04 16:23:01', '2026-04-04 16:23:01');
+(1, 7, 'Ken', 'Edward', 'Latido', 'male', '2004-06-14', 'Manila City', 'Maria Latido', '09980000001', 'Prefers afternoon appointments.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(2, 8, 'Kayenne', 'T.', 'Trinidad', 'female', '2004-09-03', 'Quezon City', 'Liza Trinidad', '09980000002', 'Has prior cleaning history.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(3, 9, 'Alwyn', 'S.', 'Chang', 'male', '2004-12-11', 'Pasig City', 'Victor Chang', '09980000003', 'Interested in braces consultation.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(4, 10, 'Alek', 'M.', 'Medran', 'male', '2004-03-29', 'Makati City', 'Helen Medran', '09980000004', 'Sensitive gums noted.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(5, 11, 'Sofia', 'Mae', 'Mendoza', 'female', '2001-07-22', 'Taguig City', 'Nina Mendoza', '09980000005', 'Returning patient.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(6, 12, 'John', 'Paolo', 'Ramos', 'male', '1999-02-15', 'Muntinlupa City', 'Celine Ramos', '09980000006', 'Requested weekend slots before.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(7, 13, 'Camille', 'Anne', 'Dela Cruz', 'female', '2002-01-30', 'Parañaque City', 'Rosa Dela Cruz', '09980000007', 'For restorative treatment follow-up.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(8, 14, 'Mark', 'Joseph', 'Villanueva', 'male', '1998-05-08', 'Las Piñas City', 'Leo Villanueva', '09980000008', 'Has cancelled once before.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(9, 15, 'Paula', 'Irene', 'Aquino', 'female', '2003-11-19', 'Caloocan City', 'Grace Aquino', '09980000009', 'Needs x-ray before extraction.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(10, 16, 'Luis', 'Andre', 'Fernandez', 'male', '2000-08-27', 'San Juan City', 'Mario Fernandez', '09980000010', 'No known dental history yet.', '2026-04-05 07:42:54', '2026-04-05 07:42:54');
 
 -- --------------------------------------------------------
 
@@ -234,9 +211,6 @@ CREATE TABLE `payments` (
   `payment_id` int(11) NOT NULL,
   `appointment_id` int(11) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `payment_method` enum('cash','gcash','bank_transfer','card','other') DEFAULT 'other',
-  `reference_number` varchar(100) DEFAULT NULL,
-  `proof_image_path` varchar(255) DEFAULT NULL,
   `payment_date` datetime DEFAULT NULL,
   `verification_status` enum('pending','verified','rejected') NOT NULL DEFAULT 'pending',
   `verified_by` int(11) DEFAULT NULL,
@@ -249,11 +223,17 @@ CREATE TABLE `payments` (
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`payment_id`, `appointment_id`, `amount`, `payment_method`, `reference_number`, `proof_image_path`, `payment_date`, `verification_status`, `verified_by`, `verification_notes`, `created_at`, `updated_at`) VALUES
-(7, 11, 1500.00, 'other', NULL, NULL, '2026-04-05 00:00:00', 'verified', 1, 'Payment verified by admin/staff', '2026-04-04 22:15:55', '2026-04-04 22:19:01'),
-(8, 12, 500.00, 'other', NULL, NULL, NULL, 'pending', NULL, NULL, '2026-04-04 22:15:59', '2026-04-04 22:15:59'),
-(9, 13, 3000.00, 'other', NULL, NULL, NULL, 'pending', NULL, NULL, '2026-04-04 23:04:39', '2026-04-04 23:04:39'),
-(10, 15, 500.00, 'other', NULL, NULL, NULL, 'pending', NULL, NULL, '2026-04-04 23:26:14', '2026-04-04 23:26:14');
+INSERT INTO `payments` (`payment_id`, `appointment_id`, `amount`, `payment_date`, `verification_status`, `verified_by`, `verification_notes`, `created_at`, `updated_at`) VALUES
+(1, 1, 1000.00, '2026-04-01 08:40:00', 'verified', 5, 'Paid and verified before procedure.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(2, 2, 500.00, '2026-04-02 09:35:00', 'verified', 6, 'Walk-in payment verified.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(3, 3, 1000.00, '2026-04-05 10:15:00', 'pending', NULL, 'Payment proof submitted, awaiting verification.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(4, 4, 500.00, NULL, 'pending', NULL, 'No payment submitted yet.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(5, 5, 4000.00, NULL, 'pending', NULL, 'To be paid before appointment date.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(6, 6, 30000.00, NULL, 'pending', NULL, 'Large treatment, pending confirmation.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(7, 7, 3000.00, '2026-04-03 14:20:00', 'rejected', 5, 'Rejected because appointment was not approved.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(8, 8, 1500.00, '2026-04-04 17:10:00', 'rejected', 6, 'Cancelled appointment; payment not accepted.', '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(9, 9, 1500.00, '2026-04-05 00:00:00', 'verified', 1, 'Payment verified by admin/staff', '2026-04-05 07:42:54', '2026-04-05 07:45:47'),
+(10, 10, 3000.00, '2026-04-05 11:30:00', 'verified', 5, 'Verified for same-day treatment.', '2026-04-05 07:42:54', '2026-04-05 07:42:54');
 
 -- --------------------------------------------------------
 
@@ -279,14 +259,16 @@ CREATE TABLE `services` (
 --
 
 INSERT INTO `services` (`service_id`, `service_name`, `description`, `image_path`, `duration_minutes`, `price`, `is_active`, `created_by`, `created_at`, `updated_at`) VALUES
-(7, 'Tooth restoration', 'Restore the function and integrity of missing tooth structure.', NULL, 60, 1500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(8, 'Wisdom tooth extraction', 'Surgical removal of one or more wisdom teeth.', NULL, 120, 3000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(9, 'Teeth Whitening', 'Professional bleaching to lighten the color of your teeth.', NULL, 120, 3000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(10, 'Dental Check-up', 'Comprehensive examination of your teeth and gums.', NULL, 60, 500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(11, 'Braces Installation', 'Orthodontic treatment to straighten teeth (Price ranges from ₱30,000 to ₱60,000).', NULL, 180, 30000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(12, 'Braces adjustment', 'Routine tightening and adjustment of braces.', NULL, 60, 1000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(13, 'Dental x-ray', 'Radiographic imaging of teeth and jaw.', NULL, 60, 500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34'),
-(14, 'Root canal treatment', 'Treatment to repair and save a badly damaged or infected tooth.', NULL, 180, 4000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-04 17:33:34');
+(1, 'Teeth Cleaning', 'Teeth cleaning removes plaque, tartar and bacteria to maintain healthy teeth and gums.', '../assets/services/1775376565_Teeth Cleaning.jpeg', 60, 1000.00, 1, 1, '2026-04-05 06:37:03', '2026-04-05 08:09:25'),
+(2, 'Tooth Extraction', 'Tooth extraction, or dental extraction, is the removal of a tooth from its socket in the jawbone.', '../assets/services/1775376591_Tooth Extraction.jpg', 60, 1500.00, 1, 1, '2026-04-05 06:40:06', '2026-04-05 08:09:51'),
+(3, 'Tooth Restoration', 'Restore the function and integrity of missing tooth structure.', '../assets/services/1775376606_Tooth Restoration.jpg', 60, 1500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:10:06'),
+(4, 'Wisdom Tooth Extraction', 'Surgical removal of one or more wisdom teeth.', '../assets/services/1775376616_Wisdom Tooth Extraction.jpeg', 120, 3000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:10:16'),
+(5, 'Teeth Whitening', 'Professional bleaching to lighten the color of your teeth.', '../assets/services/1775376575_Teeth Whitening.jpeg', 120, 3000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:09:35'),
+(6, 'Dental Check-Up', 'Comprehensive examination of your teeth and gums.', '../assets/services/1775376530_Dental Checkup.jpeg', 60, 500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:08:50'),
+(7, 'Braces Installation', 'Orthodontic treatment to straighten teeth', '../assets/services/1775376521_Braces Installation.jpeg', 180, 30000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:08:41'),
+(8, 'Braces Adjustment', 'Routine tightening and adjustment of braces.', '../assets/services/1775376512_Braces Adjustment.jpeg', 60, 1000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:08:32'),
+(9, 'Dental X-Ray', 'Radiographic imaging of teeth and jaw.', '../assets/services/1775376538_Dental X-Ray.jpeg', 60, 500.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:08:58'),
+(10, 'Root Canal Treatment', 'Treatment to repair and save a badly damaged or infected tooth.', '../assets/services/1775376550_Root Canal.jpeg', 180, 4000.00, 1, 1, '2026-04-04 17:33:34', '2026-04-05 08:09:10');
 
 -- --------------------------------------------------------
 
@@ -311,8 +293,8 @@ CREATE TABLE `staff_profiles` (
 --
 
 INSERT INTO `staff_profiles` (`staff_id`, `user_id`, `first_name`, `middle_name`, `last_name`, `position`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 1, 'System', NULL, 'Administrator', 'System Administrator', 1, '2026-03-31 09:00:49', '2026-03-31 09:00:49'),
-(2, 6, 'Andrea', 'Lopez', 'Reyes', 'Receptionist', 1, '2026-04-01 08:34:48', '2026-04-01 08:34:48');
+(1, 5, 'Mikaela', 'Joy', 'Garcia', 'Receptionist', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(2, 6, 'Ken', 'Luis', 'Torres', 'Clinic Staff', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54');
 
 -- --------------------------------------------------------
 
@@ -337,14 +319,22 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `role`, `email`, `phone`, `password_hash`, `account_status`, `email_verified`, `created_at`, `updated_at`) VALUES
-(1, 'system_admin', 'admin@flossgloss.com', '09170000000', '$2y$10$OCnoUXEvX8vMTGhuLZIO0uxI8xmgO..9er2H44X2QYOJaLHFbE4Za', 'active', 1, '2026-03-31 09:00:48', '2026-04-03 03:46:08'),
-(2, 'patient', 'latidokenedwardendaya@gmail.com', '09777416394', '$2y$10$h0.swecfCvnPI4YlTz3Zn.iHZaIHSEAw/efB8xqlhJwR7BupC46SK', 'active', 0, '2026-03-31 09:11:38', '2026-04-05 01:42:06'),
-(3, 'patient', 'harlene@gmail.com', '09090301830', '$2y$10$gaJl5RoUxt3MREkRzjSZsOiYArDOWMzWisNffx7Ndu92S00WCrI6.', 'active', 0, '2026-03-31 18:23:53', '2026-04-01 16:10:22'),
-(4, 'patient', 'kayenne_trinidad@gmail.com', '09123456789', '$2y$10$Xtt844MsEUPKrvAc8wrxEuhQZS9hNfdehSMn98fvqS4grDEydXSrS', 'active', 0, '2026-04-01 03:46:34', '2026-04-01 06:11:34'),
-(5, 'dentist', 'miguel.santos@flossgloss.com', '09171234567', '$2y$12$wTaCOiOfkCAbUgUEpl8CYuR4Ioe6.0.ViDEeRioO5y2Wt2AZFqvCG', 'active', 1, '2026-04-01 08:34:48', '2026-04-01 08:34:48'),
-(6, 'staff', 'andrea.reyes@flossgloss.com', '09179876543', '$2y$12$KCuvyIo0GEPgpky580tkauBvNe/CPxtY2TvdT8P36erruRjd.HLrG', 'active', 1, '2026-04-01 08:34:48', '2026-04-03 03:47:36'),
-(7, 'patient', 'kayennetrinidad@gmail.com', '09771234567', '$2y$10$gLJl5GXxjW8t38zhgw3KouwjwEn60zc5qPntl0SJyRnCTCH6vW5cS', 'active', 0, '2026-04-04 16:23:01', '2026-04-04 16:23:01'),
-(15, 'dentist', 'rafael.mendoza@flossgloss.com', '09178889999', '$2y$10$123456789012345678901uW0j0m4m8mV9mQ4RrQn0mW7m6lS9vY2', 'active', 1, '2026-04-05 01:58:25', '2026-04-05 01:58:25');
+(1, 'system_admin', 'flossglossmail@gmail.com', '09777416394', '$2y$10$OCnoUXEvX8vMTGhuLZIO0uxI8xmgO..9er2H44X2QYOJaLHFbE4Za', 'active', 1, '2026-03-31 09:00:48', '2026-04-05 06:33:08'),
+(2, 'dentist', 'maria.santos@flossgloss.com', '09170000002', '$2y$12$fj7fbM4e6MkY4iZ3BzW5/umPJnRFZxbs2k6SmZYnMM03bRtJLTO3i', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(3, 'dentist', 'joshua.reyes@flossgloss.com', '09170000003', '$2y$12$8yFnPL568bynM9HHPj/.WeaqUkR1B.og3ne/JBkCpext4ULqbv5Pm', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(4, 'dentist', 'angela.cruz@flossgloss.com', '09170000004', '$2y$12$dt8zyTKvbspnRza35LgXaOxiKvmHCt3ojBhpIsWsEbw4GtzPdJqjy', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(5, 'staff', 'mikaela.garcia@flossgloss.com', '09170000005', '$2y$12$LPyPmKHYrnh0vug28QBS6O67DecvHqfx2.esFafp.UwUtYKPZkAeO', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(6, 'staff', 'ken.torres@flossgloss.com', '09170000006', '$2y$12$YZWfVeYL2V3gUsXIlCr8kOgWz.aCoWc5UEmuuULnAqx4WmTiYucxy', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(7, 'patient', 'ken_latido@dlsu.edu.ph', '09170000007', '$2y$12$cHaD5VsbJev6FbedFPxMG.5yK17O/OLw85t/NtsHc17F7wDe6FI7W', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(8, 'patient', 'kayenne_t_trinidad@dlsu.edu.ph', '09170000008', '$2y$12$2AQgC/qrToV3AEOletbl2eRK1PixKJmVyCUVld5yg46bzNQ2k9oSS', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(9, 'patient', 'alwyn_change@dlsu.edu.ph', '09170000009', '$2y$12$zZyODZXk6OC87tz.JCvCQ.7oeGj2TxD5hgBVUK0MyURXCfU8jppYq', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(10, 'patient', 'alek_medran@dlsu.edu.ph', '09170000010', '$2y$12$go6VfW7QMXhBV/7c0GC0pu4pXZ/MM.p1iCyvx2SnuQd1hYSBpPzuu', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(11, 'patient', 'sofia.mendoza@gmail.com', '09170000011', '$2y$12$nsrnc7nY4fKxwieJDW2atutRo3mO4kIA1X0kupgB3.U5NnuKIf1K2', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(12, 'patient', 'john.ramos@gmail.com', '09170000012', '$2y$12$lwHlrGihNI4oFRvqiGYCIOGwIfnFUGcmCk4rrU3j7v1E3qAiRXF9K', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(13, 'patient', 'camille.delacruz@gmail.com', '09170000013', '$2y$12$TXAGQXPaAmAv0kZ6N03yWuQT27j8hcDg2yMr1vIoVqrjN4RUa5JZC', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(14, 'patient', 'mark.villanueva@gmail.com', '09170000014', '$2y$12$hozbw9F7th6J0nYWmOdle.L3Gu5dI41BIFdBKkPsrrib3mvT1.fJe', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(15, 'patient', 'paula.aquino@gmail.com', '09170000015', '$2y$12$zh/ktU.ZSw26JDGp/eurKORZ6qi24PBaaAfzAC3EaTQ36WWcUAwu.', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54'),
+(16, 'patient', 'luis.fernandez@gmail.com', '09170000016', '$2y$12$YlzM9I/9mjY22bb4NYCyyuWnRVgYtU3sfOprhrrf/TYRptSIrGryW', 'active', 1, '2026-04-05 07:42:54', '2026-04-05 07:42:54');
 
 --
 -- Indexes for dumped tables
@@ -389,14 +379,6 @@ ALTER TABLE `dentist_schedule_blocks`
   ADD PRIMARY KEY (`block_id`),
   ADD KEY `fk_schedule_block_dentist` (`dentist_id`),
   ADD KEY `fk_schedule_block_created_by` (`created_by`);
-
---
--- Indexes for table `email_notifications`
---
-ALTER TABLE `email_notifications`
-  ADD PRIMARY KEY (`email_notification_id`),
-  ADD KEY `fk_email_notification_appointment` (`appointment_id`),
-  ADD KEY `idx_email_notifications_user` (`user_id`);
 
 --
 -- Indexes for table `medical_notes`
@@ -457,43 +439,37 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `appointment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `appointment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `appointment_status_history`
 --
 ALTER TABLE `appointment_status_history`
-  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `dentist_profiles`
 --
 ALTER TABLE `dentist_profiles`
-  MODIFY `dentist_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `dentist_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `dentist_schedule_blocks`
 --
 ALTER TABLE `dentist_schedule_blocks`
-  MODIFY `block_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
--- AUTO_INCREMENT for table `email_notifications`
---
-ALTER TABLE `email_notifications`
-  MODIFY `email_notification_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `block_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `medical_notes`
 --
 ALTER TABLE `medical_notes`
-  MODIFY `note_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `note_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `patient_profiles`
 --
 ALTER TABLE `patient_profiles`
-  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `payments`
@@ -505,7 +481,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `staff_profiles`
@@ -517,7 +493,7 @@ ALTER TABLE `staff_profiles`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- Constraints for dumped tables
@@ -552,13 +528,6 @@ ALTER TABLE `dentist_profiles`
 ALTER TABLE `dentist_schedule_blocks`
   ADD CONSTRAINT `fk_schedule_block_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_schedule_block_dentist` FOREIGN KEY (`dentist_id`) REFERENCES `dentist_profiles` (`dentist_id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `email_notifications`
---
-ALTER TABLE `email_notifications`
-  ADD CONSTRAINT `fk_email_notification_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`appointment_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_email_notification_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `medical_notes`
