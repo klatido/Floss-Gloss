@@ -690,7 +690,6 @@ if ($canManageSchedules) {
             a.final_start_time,
             a.final_end_time,
             a.status,
-            a.reschedule_reason,
             a.approval_notes,
             s.service_name,
             TRIM(CONCAT(COALESCE(pp.first_name, ''), ' ', COALESCE(pp.last_name, ''))) AS patient_name,
