@@ -26,6 +26,20 @@ function safeDateFormat(?string $date, string $format = 'n/j/Y'): string {
     return $timestamp ? date($format, $timestamp) : 'N/A';
 }
 
+function buildDisplayName(?string $role, ?string $staffFirst, ?string $staffLast, ?string $dentistFirst, ?string $dentistLast): string {
+    if ($role === 'dentist') {
+        $name = trim(($dentistFirst ?? '') . ' ' . ($dentistLast ?? ''));
+        return $name !== '' ? 'Dr. ' . $name : 'Dentist';
+    }
+
+    if (in_array($role, ['staff', 'system_admin', 'admin'])) {
+        $name = trim(($staffFirst ?? '') . ' ' . ($staffLast ?? ''));
+        return $name !== '' ? $name : 'Admin Staff';
+    }
+
+    return 'System';
+}
+
 /* --------------------------------------------------
    ADMIN / TOPBAR INFO
 -------------------------------------------------- */
@@ -60,12 +74,8 @@ if ($admin_stmt) {
         );
 
         if ($name !== '') {
-        if (($admin_row['role'] ?? '') === 'dentist') {
-            $admin_name = 'Dr. ' . $name;
-        } else {
-            $admin_name = $name;
+            $admin_name = (($admin_row['role'] ?? '') === 'dentist') ? 'Dr. ' . $name : $name;
         }
-    }
 
         if (($admin_row['role'] ?? '') === 'system_admin') {
             $admin_role = 'Administrator';
@@ -84,10 +94,10 @@ if ($admin_stmt) {
 -------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record']) && $canManageRecords) {
     $patient_id = isset($_POST['patient_id']) ? (int)$_POST['patient_id'] : 0;
-    $procedure = trim($_POST['procedure'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
     $treatment_notes = trim($_POST['treatment_notes'] ?? '');
 
-    if ($patient_id <= 0 || $procedure === '' || $treatment_notes === '') {
+    if ($patient_id <= 0 || $subject === '' || $treatment_notes === '') {
         header("Location: " . basename(__FILE__) . "?message=invalid");
         exit();
     }
@@ -118,17 +128,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record']) && $can
         INSERT INTO medical_notes
         (
             patient_id,
-            appointment_id,
             encoded_by,
-            note_type,
-            chief_complaint,
-            diagnosis,
-            treatment_plan,
-            prescription,
+            updated_by,
+            subject,
             note_text,
-            is_confidential
+            created_at,
+            updated_at
         )
-        VALUES (?, NULL, ?, 'treatment_note', NULL, NULL, ?, NULL, ?, 0)
+        VALUES (?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     ";
     $insert_stmt = mysqli_prepare($conn, $insert_sql);
 
@@ -137,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record']) && $can
         exit();
     }
 
-    mysqli_stmt_bind_param($insert_stmt, "iiss", $patient_id, $user_id, $procedure, $treatment_notes);
+    mysqli_stmt_bind_param($insert_stmt, "iiss", $patient_id, $user_id, $subject, $treatment_notes);
 
     if (mysqli_stmt_execute($insert_stmt)) {
         header("Location: " . basename(__FILE__) . "?message=added");
@@ -154,10 +161,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_record']) && $can
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record']) && $canManageRecords) {
     $note_id = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
     $patient_id = isset($_POST['patient_id']) ? (int)$_POST['patient_id'] : 0;
-    $procedure = trim($_POST['procedure'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
     $treatment_notes = trim($_POST['treatment_notes'] ?? '');
 
-    if ($note_id <= 0 || $patient_id <= 0 || $procedure === '' || $treatment_notes === '') {
+    if ($note_id <= 0 || $patient_id <= 0 || $subject === '' || $treatment_notes === '') {
         header("Location: " . basename(__FILE__) . "?message=invalid_edit");
         exit();
     }
@@ -188,8 +195,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record']) && $ca
         UPDATE medical_notes
         SET
             patient_id = ?,
-            treatment_plan = ?,
+            subject = ?,
             note_text = ?,
+            updated_by = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE note_id = ?
         LIMIT 1
@@ -201,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_record']) && $ca
         exit();
     }
 
-    mysqli_stmt_bind_param($update_stmt, "issi", $patient_id, $procedure, $treatment_notes, $note_id);
+    mysqli_stmt_bind_param($update_stmt, "issii", $patient_id, $subject, $treatment_notes, $user_id, $note_id);
 
     if (mysqli_stmt_execute($update_stmt)) {
         header("Location: " . basename(__FILE__) . "?message=updated");
@@ -285,25 +293,38 @@ $records_sql = "
         mn.note_id,
         mn.patient_id,
         mn.encoded_by,
-        mn.note_type,
-        mn.treatment_plan,
+        mn.updated_by,
+        mn.subject,
         mn.note_text,
         mn.created_at,
+        mn.updated_at,
 
         pp.first_name AS patient_first_name,
         pp.last_name AS patient_last_name,
 
         u_encoder.role AS encoder_role,
-        dsp.first_name AS dentist_first_name,
-        dsp.last_name AS dentist_last_name,
-        ssp.first_name AS staff_first_name,
-        ssp.last_name AS staff_last_name
+        dsp_encoder.first_name AS encoder_dentist_first_name,
+        dsp_encoder.last_name AS encoder_dentist_last_name,
+        ssp_encoder.first_name AS encoder_staff_first_name,
+        ssp_encoder.last_name AS encoder_staff_last_name,
+
+        u_updater.role AS updater_role,
+        dsp_updater.first_name AS updater_dentist_first_name,
+        dsp_updater.last_name AS updater_dentist_last_name,
+        ssp_updater.first_name AS updater_staff_first_name,
+        ssp_updater.last_name AS updater_staff_last_name
 
     FROM medical_notes mn
     INNER JOIN patient_profiles pp ON mn.patient_id = pp.patient_id
+
     LEFT JOIN users u_encoder ON mn.encoded_by = u_encoder.user_id
-    LEFT JOIN dentist_profiles dsp ON u_encoder.user_id = dsp.user_id
-    LEFT JOIN staff_profiles ssp ON u_encoder.user_id = ssp.user_id
+    LEFT JOIN dentist_profiles dsp_encoder ON u_encoder.user_id = dsp_encoder.user_id
+    LEFT JOIN staff_profiles ssp_encoder ON u_encoder.user_id = ssp_encoder.user_id
+
+    LEFT JOIN users u_updater ON mn.updated_by = u_updater.user_id
+    LEFT JOIN dentist_profiles dsp_updater ON u_updater.user_id = dsp_updater.user_id
+    LEFT JOIN staff_profiles ssp_updater ON u_updater.user_id = ssp_updater.user_id
+
     ORDER BY mn.created_at DESC, mn.note_id DESC
 ";
 $records_result = mysqli_query($conn, $records_sql);
@@ -315,18 +336,31 @@ if ($records_result) {
             $patient_name = 'Patient #' . ($row['patient_id'] ?? 'N/A');
         }
 
-        $added_by = 'System';
-        if (($row['encoder_role'] ?? '') === 'dentist') {
-            $dentist_name = trim(($row['dentist_first_name'] ?? '') . ' ' . ($row['dentist_last_name'] ?? ''));
-            $added_by = $dentist_name !== '' ? 'Dr. ' . $dentist_name : 'Dentist';
-        } elseif (in_array(($row['encoder_role'] ?? ''), ['staff', 'system_admin', 'admin'])) {
-            $staff_name = trim(($row['staff_first_name'] ?? '') . ' ' . ($row['staff_last_name'] ?? ''));
-            $added_by = $staff_name !== '' ? $staff_name : 'Admin Staff';
+        $added_by = buildDisplayName(
+            $row['encoder_role'] ?? '',
+            $row['encoder_staff_first_name'] ?? '',
+            $row['encoder_staff_last_name'] ?? '',
+            $row['encoder_dentist_first_name'] ?? '',
+            $row['encoder_dentist_last_name'] ?? ''
+        );
+
+        $updated_by = '';
+        $wasEdited = false;
+
+        if (!empty($row['updated_by'])) {
+            $updated_by = buildDisplayName(
+                $row['updater_role'] ?? '',
+                $row['updater_staff_first_name'] ?? '',
+                $row['updater_staff_last_name'] ?? '',
+                $row['updater_dentist_first_name'] ?? '',
+                $row['updater_dentist_last_name'] ?? ''
+            );
+            $wasEdited = ($updated_by !== '');
         }
 
-        $procedure = trim($row['treatment_plan'] ?? '');
-        if ($procedure === '') {
-            $procedure = 'No procedure specified';
+        $subject = trim($row['subject'] ?? '');
+        if ($subject === '') {
+            $subject = 'No subject specified';
         }
 
         $notes = trim($row['note_text'] ?? '');
@@ -336,7 +370,9 @@ if ($records_result) {
 
         $row['patient_name'] = $patient_name;
         $row['added_by'] = $added_by;
-        $row['procedure'] = $procedure;
+        $row['updated_by_name'] = $updated_by;
+        $row['was_edited'] = $wasEdited;
+        $row['subject_display'] = $subject;
         $row['notes'] = $notes;
 
         $records[] = $row;
@@ -504,13 +540,15 @@ include("../includes/admin-sidebar.php");
     .record-meta {
         font-size: 14px;
         color: #64748b;
+        line-height: 1.7;
     }
 
-    .record-added-by {
+    .record-side-meta {
         font-size: 14px;
         color: #64748b;
         text-align: right;
         white-space: nowrap;
+        line-height: 1.8;
     }
 
     .record-label {
@@ -709,8 +747,9 @@ include("../includes/admin-sidebar.php");
             flex-direction: column;
         }
 
-        .record-added-by {
+        .record-side-meta {
             text-align: left;
+            white-space: normal;
         }
     }
 </style>
@@ -746,7 +785,7 @@ include("../includes/admin-sidebar.php");
         <section class="panel">
             <div class="search-wrap">
                 <span class="search-icon">⌕</span>
-                <input type="text" id="recordSearch" placeholder="Search by patient name or procedure...">
+                <input type="text" id="recordSearch" placeholder="Search by patient name or subject...">
             </div>
         </section>
 
@@ -755,25 +794,27 @@ include("../includes/admin-sidebar.php");
                 <?php foreach ($records as $record): ?>
                     <div
                         class="record-card"
-                        data-search="<?php echo htmlspecialchars(strtolower($record['patient_name'] . ' ' . $record['procedure'] . ' ' . $record['notes'])); ?>"
+                        data-search="<?php echo htmlspecialchars(strtolower($record['patient_name'] . ' ' . $record['subject_display'] . ' ' . $record['notes'])); ?>"
                     >
                         <div class="record-head">
                             <div>
                                 <div class="record-patient"><?php echo htmlspecialchars($record['patient_name']); ?></div>
                                 <div class="record-meta">
                                     <?php echo htmlspecialchars(safeDateFormat($record['created_at'], 'n/j/Y')); ?>
-                                    •
-                                    <?php echo htmlspecialchars($record['added_by']); ?>
                                 </div>
                             </div>
 
-                            <div class="record-added-by">
+                            <div class="record-side-meta">
                                 Added by <?php echo htmlspecialchars($record['added_by']); ?>
+                                <?php if ($record['was_edited']): ?>
+                                    <br>
+                                    Updated by <?php echo htmlspecialchars($record['updated_by_name']); ?>
+                                <?php endif; ?>
                             </div>
                         </div>
 
-                        <div class="record-label">Procedure</div>
-                        <div class="record-value"><?php echo htmlspecialchars($record['procedure']); ?></div>
+                        <div class="record-label">Subject</div>
+                        <div class="record-value"><?php echo htmlspecialchars($record['subject_display']); ?></div>
 
                         <div class="record-label">Treatment Notes</div>
                         <div class="record-value"><?php echo nl2br(htmlspecialchars($record['notes'])); ?></div>
@@ -785,7 +826,7 @@ include("../includes/admin-sidebar.php");
                                     class="action-btn edit"
                                     data-note-id="<?php echo (int)$record['note_id']; ?>"
                                     data-patient-id="<?php echo (int)$record['patient_id']; ?>"
-                                    data-procedure="<?php echo htmlspecialchars($record['procedure'], ENT_QUOTES); ?>"
+                                    data-subject="<?php echo htmlspecialchars($record['subject_display'], ENT_QUOTES); ?>"
                                     data-notes="<?php echo htmlspecialchars($record['notes'], ENT_QUOTES); ?>"
                                     onclick="openEditRecordModal(this)"
                                 >
@@ -819,7 +860,7 @@ include("../includes/admin-sidebar.php");
         <button class="modal-close-x" type="button" onclick="closeAddRecordModal()">&times;</button>
 
         <h3 class="modal-title">Add Medical Record</h3>
-        <p class="modal-subtitle">Add treatment notes and medical history for a patient</p>
+        <p class="modal-subtitle">Add subject and treatment notes for a patient</p>
 
         <form method="POST">
             <input type="hidden" name="add_record" value="1">
@@ -837,11 +878,11 @@ include("../includes/admin-sidebar.php");
             </div>
 
             <div class="form-group">
-                <label>Procedure/Treatment</label>
+                <label>Subject</label>
                 <input
                     type="text"
-                    name="procedure"
-                    placeholder="e.g., Teeth Cleaning, Root Canal"
+                    name="subject"
+                    placeholder="Enter subject"
                     required
                 >
             </div>
@@ -868,7 +909,7 @@ include("../includes/admin-sidebar.php");
         <button class="modal-close-x" type="button" onclick="closeEditRecordModal()">&times;</button>
 
         <h3 class="modal-title">Edit Medical Record</h3>
-        <p class="modal-subtitle">Update treatment notes and patient record details</p>
+        <p class="modal-subtitle">Update subject and treatment notes</p>
 
         <form method="POST">
             <input type="hidden" name="edit_record" value="1">
@@ -887,11 +928,11 @@ include("../includes/admin-sidebar.php");
             </div>
 
             <div class="form-group">
-                <label>Procedure/Treatment</label>
+                <label>Subject</label>
                 <input
                     type="text"
-                    name="procedure"
-                    id="edit_procedure"
+                    name="subject"
+                    id="edit_subject"
                     required
                 >
             </div>
@@ -968,12 +1009,12 @@ include("../includes/admin-sidebar.php");
     function openEditRecordModal(button) {
         const noteId = document.getElementById('edit_note_id');
         const patientId = document.getElementById('edit_patient_id');
-        const procedure = document.getElementById('edit_procedure');
+        const subject = document.getElementById('edit_subject');
         const notes = document.getElementById('edit_treatment_notes');
 
         if (noteId) noteId.value = button.dataset.noteId || '';
         if (patientId) patientId.value = button.dataset.patientId || '';
-        if (procedure) procedure.value = button.dataset.procedure || '';
+        if (subject) subject.value = button.dataset.subject || '';
         if (notes) notes.value = button.dataset.notes || '';
 
         if (editRecordModal) {
