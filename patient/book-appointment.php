@@ -826,7 +826,7 @@ async function loadTimeSlots() {
     try {
         let url = `book-appointment.php?action=get_unavailable_slots&dentist_id=${encodeURIComponent(dentistId)}&date=${encodeURIComponent(selectedDate)}&duration=${encodeURIComponent(duration)}`;
 
-        if (excludeAppointmentId > 0) {
+        if (typeof excludeAppointmentId !== 'undefined' && excludeAppointmentId > 0) {
             url += `&exclude_appointment_id=${encodeURIComponent(excludeAppointmentId)}`;
         }
 
@@ -837,68 +837,78 @@ async function loadTimeSlots() {
     }
 
     if (unavailableData.full_day_blocked) {
-        let opt = document.createElement("option");
-        opt.value = "";
-        opt.text = "No available time slots";
-        opt.disabled = true;
-        opt.selected = true;
-        select.appendChild(opt);
+        select.innerHTML = "<option value='' disabled selected>Dentist is unavailable this entire day</option>";
         document.getElementById("time").value = "";
         updateSummary();
         return;
     }
 
     const unavailableSlots = unavailableData.unavailable_slots || [];
-    const fixedSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+    
+    const fixedSlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+
+    const todayObj = new Date();
+    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`;
+    const isToday = (selectedDate === todayStr);
+    const currentHour = todayObj.getHours(); 
+
+    const durationHours = duration / 60;
+    let availableCount = 0;
 
     for (const slot of fixedSlots) {
-        const slotStart = new Date(`2000-01-01T${slot}:00`);
-        const slotEnd = new Date(slotStart.getTime() + (duration * 60000));
-
-        // guard: closing time
-        const clinicClose = new Date("2000-01-01T17:00:00");
-        if (slotEnd > clinicClose) {
-            continue;
-        }
-
-        // guard: lunch overlap
-        const lunchStart = new Date("2000-01-01T12:00:00");
-        const lunchEnd = new Date("2000-01-01T13:00:00");
-        if (slotStart < lunchEnd && slotEnd > lunchStart) {
-            continue;
-        }
-
-        let overlapsUnavailable = false;
-
-        for (const blocked of unavailableSlots) {
-            const blockedStart = new Date(`2000-01-01T${blocked}:00`);
-            const blockedEnd = new Date(blockedStart.getTime() + 60000 * 60);
-
-            if (slotStart < blockedEnd && slotEnd > blockedStart) {
-                overlapsUnavailable = true;
-                break;
-            }
-        }
-
-        if (overlapsUnavailable) {
-            continue;
-        }
+        const slotHour = parseInt(slot.split(':')[0], 10);
+        const slotEndHour = slotHour + durationHours;
 
         let opt = document.createElement("option");
         opt.value = slot;
-        opt.text = formatTimeDisplay(slot);
+        let displayTime = formatTimeDisplay(slot);
+
+        if (isToday && slotHour <= currentHour) {
+            opt.text = `${displayTime} - Time Passed`;
+            opt.disabled = true;
+        }
+        else if (slotHour === 12) {
+            opt.text = "12:00 PM - Lunch Break";
+            opt.disabled = true;
+        }
+        else if (slotHour < 13 && slotEndHour > 12) {
+            opt.text = `${displayTime} - Overlaps Lunch Break`;
+            opt.disabled = true;
+        }
+        else if (slotEndHour > 17) {
+            opt.text = `${displayTime} - Exceeds Closing Time`;
+            opt.disabled = true;
+        }
+        else {
+            let overlapsUnavailable = false;
+            for (const blocked of unavailableSlots) {
+                const blockedHour = parseInt(blocked.split(':')[0], 10);
+                const blockedEndHour = blockedHour + 1; 
+
+                if (slotHour < blockedEndHour && slotEndHour > blockedHour) {
+                    overlapsUnavailable = true;
+                    break;
+                }
+            }
+
+            if (overlapsUnavailable) {
+                opt.text = `${displayTime} - Already Booked`;
+                opt.disabled = true;
+            } else {
+                opt.text = displayTime;
+                availableCount++;
+            }
+        }
+
         select.appendChild(opt);
     }
 
-    if (select.options.length === 1) {
-        let opt = document.createElement("option");
-        opt.value = "";
-        opt.text = "No available time slots";
-        opt.disabled = true;
-        opt.selected = true;
-        select.appendChild(opt);
+    if (availableCount === 0) {
+        select.options[0].text = "No valid slots for this service today";
         document.getElementById("time").value = "";
     }
+
+    updateSummary();
 }
 
 function selectTime() {
