@@ -60,14 +60,69 @@ $full_name = trim($patient['first_name'] . ' ' . $patient['last_name']);
 $member_since = date('n/j/Y', strtotime($patient['created_at']));
 $formatted_dob = $patient['birth_date'] ? date('m/d/Y', strtotime($patient['birth_date'])) : '';
 
-$med_query = "SELECT note_text FROM medical_notes WHERE patient_id = ? AND note_type = 'medical_history' ORDER BY created_at DESC LIMIT 1";
+$med_query = "
+    SELECT 
+        mn.note_type,
+        mn.chief_complaint,
+        mn.diagnosis,
+        mn.treatment_plan,
+        mn.prescription,
+        mn.note_text,
+        mn.created_at,
+        u.role AS encoder_role,
+        sp.first_name AS staff_first_name,
+        sp.last_name AS staff_last_name,
+        dp.first_name AS dentist_first_name,
+        dp.last_name AS dentist_last_name
+    FROM medical_notes mn
+    LEFT JOIN users u ON mn.encoded_by = u.user_id
+    LEFT JOIN staff_profiles sp ON u.user_id = sp.user_id
+    LEFT JOIN dentist_profiles dp ON u.user_id = dp.user_id
+    WHERE mn.patient_id = ?
+      AND mn.note_type IN ('medical_history', 'treatment_note', 'general_note', 'appointment_note')
+    ORDER BY mn.created_at DESC
+    LIMIT 1
+";
 $med_stmt = $conn->prepare($med_query);
 $med_stmt->bind_param("i", $patient['patient_id']);
 $med_stmt->execute();
 $med_result = $med_stmt->get_result();
-$medical_history = $med_result->fetch_assoc();
+$medical_record = $med_result->fetch_assoc();
 
-$history_text = $medical_history ? $medical_history['note_text'] : 'No major health issues recorded.';
+$record_date = '';
+$record_added_by = '';
+$record_procedure = '';
+$record_notes = '';
+
+if ($medical_record) {
+    $record_date = date('n/j/Y', strtotime($medical_record['created_at']));
+
+    if (($medical_record['encoder_role'] ?? '') === 'dentist') {
+        $dentist_name = trim(($medical_record['dentist_first_name'] ?? '') . ' ' . ($medical_record['dentist_last_name'] ?? ''));
+        $record_added_by = $dentist_name !== '' ? 'Dr. ' . $dentist_name : 'Dentist';
+    } elseif (in_array(($medical_record['encoder_role'] ?? ''), ['staff', 'system_admin', 'admin'])) {
+        $staff_name = trim(($medical_record['staff_first_name'] ?? '') . ' ' . ($medical_record['staff_last_name'] ?? ''));
+        $record_added_by = $staff_name !== '' ? $staff_name : 'System Administrator';
+    } else {
+        $record_added_by = 'Clinic Staff';
+    }
+
+    $record_procedure = trim($medical_record['treatment_plan'] ?? '');
+    if ($record_procedure === '') {
+        $record_procedure = trim($medical_record['diagnosis'] ?? '');
+    }
+    if ($record_procedure === '') {
+        $record_procedure = trim($medical_record['chief_complaint'] ?? '');
+    }
+    if ($record_procedure === '') {
+        $record_procedure = 'No procedure specified.';
+    }
+
+    $record_notes = trim($medical_record['note_text'] ?? '');
+    if ($record_notes === '') {
+        $record_notes = 'No treatment notes available.';
+    }
+}
 $allergies_text = $patient['allergies'] ? $patient['allergies'] : '';
 
 $page_title = "Profile Management | Floss & Gloss Dental";
@@ -77,12 +132,77 @@ include("../includes/patient-navbar.php");
 
 <style>
 
+    .medical-record-card {
+    background: #ffffff;
+    border: 1px solid #dde3ea;
+    border-radius: 18px;
+    padding: 24px 26px;
+    }
+
+    .medical-record-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .medical-record-meta-left {
+        font-size: 14px;
+        color: #64748b;
+    }
+
+    .medical-record-meta-right {
+        font-size: 14px;
+        color: #64748b;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .medical-record-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+
+    .medical-record-value {
+        font-size: 15px;
+        color: #0f172a;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .medical-record-empty {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 18px 20px;
+        font-size: 15px;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+        .medical-record-head {
+            flex-direction: column;
+        }
+
+        .medical-record-meta-right {
+            text-align: left;
+            white-space: normal;
+        }
+    }
+
     .profile-wrapper {
-        max-width: 900px;
+        max-width: 1200px;
         margin: 0 auto;
         padding: 40px 20px;
     }
 
+    .profile-inner {
+        max-width: 900px;
+        margin: 0 auto;
+    }
     .profile-header { margin-bottom: 30px; }
     .profile-header h1 { font-size: 28px; color: #0f172a; margin-bottom: 6px; }
     .profile-header p { color: #64748b; font-size: 15px; }
@@ -162,6 +282,7 @@ include("../includes/patient-navbar.php");
         background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
         padding: 16px; margin-top: 25px; font-size: 14px; color: #b45309;
     }
+    
     .profile-warning strong { font-weight: 700; color: #92400e; }
     
     .alert-success { background: #d1fae5; color: #065f46; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
@@ -172,10 +293,16 @@ include("../includes/patient-navbar.php");
 
 <div class="page profile-wrapper">
     
-    <div class="profile-header">
-        <h1>Profile Management</h1>
-        <p>Manage your personal and medical information</p>
+    <div class="profile-header" style="width:100%; max-width:1200px; margin:0 auto 30px;">
+        <h1 style="font-size:36px; color:#0b2454; margin-bottom:10px;">
+            Profile Management
+        </h1>
+        <p style="color:#52637a; font-size:18px;">
+            Manage your personal and medical information
+        </p>
     </div>
+
+    <div class="profile-inner">
 
     <?php if ($success_message): ?>
         <div class="alert-success">✓ <?= $success_message ?></div>
@@ -262,18 +389,32 @@ include("../includes/patient-navbar.php");
                 </div>
             </div>
 
-            <div class="profile-grid">
-                <div class="profile-input-group profile-full-width">
-                    <label>Medical History (Doctor's Notes)</label>
-                    <div class="profile-input-wrapper">
-                        <input type="text" class="no-icon" value="<?= htmlspecialchars($history_text) ?>" readonly style="background-color: #f3f4f6;">
+            <?php if ($medical_record): ?>
+                <div class="medical-record-card">
+                    <div class="medical-record-head">
+                        <div class="medical-record-meta-left">
+                            <?= htmlspecialchars($record_date) ?> • <?= htmlspecialchars($record_added_by) ?>
+                        </div>
+                        <div class="medical-record-meta-right">
+                            Added by <?= htmlspecialchars($record_added_by) ?>
+                        </div>
+                    </div>
+
+                    <div class="medical-record-label">Procedure</div>
+                    <div class="medical-record-value">
+                        <?= htmlspecialchars($record_procedure) ?>
+                    </div>
+
+                    <div class="medical-record-label">Treatment Notes</div>
+                    <div class="medical-record-value">
+                        <?= nl2br(htmlspecialchars($record_notes)) ?>
                     </div>
                 </div>
-            </div>
-
-            <div class="profile-warning">
-                <strong>Note:</strong> Please keep your medical information up to date to ensure safe and effective dental treatment.
-            </div>
+            <?php else: ?>
+                <div class="medical-record-empty">
+                    No major health issues recorded.
+                </div>
+            <?php endif; ?>
         </div>
     </form>
 </div>
@@ -318,5 +459,7 @@ include("../includes/patient-navbar.php");
         });
     });
 </script>
+
+</div>
 
 <?php include("../includes/patient-footer.php"); ?>
