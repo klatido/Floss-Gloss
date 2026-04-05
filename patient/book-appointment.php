@@ -522,7 +522,10 @@ input {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    gap: 2px;
+}
+.calendar-box {
+    max-height: 260px;   
 }
 .day {
     padding: 8px 4px;
