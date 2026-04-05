@@ -12,6 +12,8 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = (int)$_SESSION['user_id'];
 
 $reschedule_id = isset($_GET['reschedule_id']) ? (int)$_GET['reschedule_id'] : 0;
+$prefilled_service_id = isset($_GET['service_id']) ? (int)$_GET['service_id'] : 0;
+
 $existing = null;
 $is_reschedule_mode = false;
 $locked_service_id = 0;
@@ -44,6 +46,153 @@ if ($patient_result && mysqli_num_rows($patient_result) > 0) {
     $patient_id = (int)$patient['patient_id'];
 } else {
     die("Patient profile not found.");
+}
+
+mysqli_stmt_close($patient_stmt);
+
+/* =========================
+   AJAX: GET UNAVAILABLE SLOTS
+========================= */
+if (isset($_GET['action']) && $_GET['action'] === 'get_unavailable_slots') {
+    header('Content-Type: application/json');
+
+    $dentist_id = (int)($_GET['dentist_id'] ?? 0);
+    $date = trim($_GET['date'] ?? '');
+    $duration = (int)($_GET['duration'] ?? 60);
+    $exclude_appointment_id = (int)($_GET['exclude_appointment_id'] ?? 0);
+
+    $response = [
+        'full_day_blocked' => false,
+        'unavailable_slots' => []
+    ];
+
+    if ($dentist_id <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        echo json_encode($response);
+        exit();
+    }
+
+    if ($duration <= 0) {
+        $duration = 60;
+    }
+
+    $fixed_slots = [
+        '09:00:00',
+        '10:00:00',
+        '11:00:00',
+        '13:00:00',
+        '14:00:00',
+        '15:00:00',
+        '16:00:00'
+    ];
+
+    // Whole day block
+    $full_block_sql = "
+        SELECT block_id
+        FROM dentist_schedule_blocks
+        WHERE dentist_id = ?
+          AND block_date = ?
+          AND start_time IS NULL
+          AND end_time IS NULL
+        LIMIT 1
+    ";
+    $full_block_stmt = mysqli_prepare($conn, $full_block_sql);
+    mysqli_stmt_bind_param($full_block_stmt, "is", $dentist_id, $date);
+    mysqli_stmt_execute($full_block_stmt);
+    $full_block_result = mysqli_stmt_get_result($full_block_stmt);
+
+    if ($full_block_result && mysqli_num_rows($full_block_result) > 0) {
+        $response['full_day_blocked'] = true;
+        mysqli_stmt_close($full_block_stmt);
+        echo json_encode($response);
+        exit();
+    }
+
+    mysqli_stmt_close($full_block_stmt);
+
+    $unavailable = [];
+
+    // Partial blocks
+    $block_sql = "
+        SELECT start_time, end_time
+        FROM dentist_schedule_blocks
+        WHERE dentist_id = ?
+          AND block_date = ?
+          AND start_time IS NOT NULL
+          AND end_time IS NOT NULL
+    ";
+    $block_stmt = mysqli_prepare($conn, $block_sql);
+    mysqli_stmt_bind_param($block_stmt, "is", $dentist_id, $date);
+    mysqli_stmt_execute($block_stmt);
+    $block_result = mysqli_stmt_get_result($block_stmt);
+
+    if ($block_result) {
+        while ($row = mysqli_fetch_assoc($block_result)) {
+            foreach ($fixed_slots as $slot) {
+                $slot_end = date('H:i:s', strtotime($slot . " +{$duration} minutes"));
+
+                if (
+                    strtotime($slot) < strtotime($row['end_time']) &&
+                    strtotime($slot_end) > strtotime($row['start_time'])
+                ) {
+                    $unavailable[] = substr($slot, 0, 5);
+                }
+            }
+        }
+    }
+
+    mysqli_stmt_close($block_stmt);
+
+    // Existing appointments, INCLUDING pending
+    if ($exclude_appointment_id > 0) {
+        $appointment_sql = "
+            SELECT
+                COALESCE(final_start_time, requested_start_time) AS start_time,
+                COALESCE(final_end_time, requested_end_time) AS end_time
+            FROM appointments
+            WHERE dentist_id = ?
+              AND appointment_id <> ?
+              AND status IN ('pending', 'approved', 'reschedule_requested', 'rescheduled')
+              AND COALESCE(final_date, requested_date) = ?
+        ";
+        $appointment_stmt = mysqli_prepare($conn, $appointment_sql);
+        mysqli_stmt_bind_param($appointment_stmt, "iis", $dentist_id, $exclude_appointment_id, $date);
+    } else {
+        $appointment_sql = "
+            SELECT
+                COALESCE(final_start_time, requested_start_time) AS start_time,
+                COALESCE(final_end_time, requested_end_time) AS end_time
+            FROM appointments
+            WHERE dentist_id = ?
+              AND status IN ('pending', 'approved', 'reschedule_requested', 'rescheduled')
+              AND COALESCE(final_date, requested_date) = ?
+        ";
+        $appointment_stmt = mysqli_prepare($conn, $appointment_sql);
+        mysqli_stmt_bind_param($appointment_stmt, "is", $dentist_id, $date);
+    }
+
+    mysqli_stmt_execute($appointment_stmt);
+    $appointment_result = mysqli_stmt_get_result($appointment_stmt);
+
+    if ($appointment_result) {
+        while ($row = mysqli_fetch_assoc($appointment_result)) {
+            foreach ($fixed_slots as $slot) {
+                $slot_end = date('H:i:s', strtotime($slot . " +{$duration} minutes"));
+
+                if (
+                    strtotime($slot) < strtotime($row['end_time']) &&
+                    strtotime($slot_end) > strtotime($row['start_time'])
+                ) {
+                    $unavailable[] = substr($slot, 0, 5);
+                }
+            }
+        }
+    }
+
+    mysqli_stmt_close($appointment_stmt);
+
+    $response['unavailable_slots'] = array_values(array_unique($unavailable));
+    echo json_encode($response);
+    exit();
 }
 
 /* =========================
@@ -166,7 +315,7 @@ if (isset($_POST['book'])) {
             FROM appointments
             WHERE dentist_id = ?
               AND appointment_id <> ?
-              AND status IN ('approved', 'reschedule_requested', 'rescheduled')
+              AND status IN ('pending', 'approved', 'reschedule_requested', 'rescheduled')
               AND COALESCE(final_date, requested_date) = ?
               AND (? < COALESCE(final_end_time, requested_end_time))
               AND (? > COALESCE(final_start_time, requested_start_time))
@@ -179,7 +328,7 @@ if (isset($_POST['book'])) {
             SELECT appointment_id
             FROM appointments
             WHERE dentist_id = ?
-              AND status IN ('approved', 'reschedule_requested', 'rescheduled')
+              AND status IN ('pending', 'approved', 'reschedule_requested', 'rescheduled')
               AND COALESCE(final_date, requested_date) = ?
               AND (? < COALESCE(final_end_time, requested_end_time))
               AND (? > COALESCE(final_start_time, requested_start_time))
@@ -404,16 +553,13 @@ input {
     color: #0f172a;
     line-height: 1.25;
 }
-
 .right-panel {
     display: flex;
     flex-direction: column;
 }
-
 .right-panel .btn {
     margin-top: auto;
 }
-
 @media (max-width: 1200px) {
     html, body {
         overflow: auto;
@@ -433,6 +579,7 @@ input {
     <div class="booking-page">
         <div class="panel left-panel">
             <h3>Appointment Details</h3>
+
             <form method="POST" class="booking-form" id="bookingForm">
                 <?php if ($is_reschedule_mode): ?>
                     <div>
@@ -457,7 +604,11 @@ input {
                         <select name="service_id" id="service" onchange="updateSummary(); loadTimeSlots();" required>
                             <option value="" data-duration="60">Choose service</option>
                             <?php while($s = mysqli_fetch_assoc($services)) { ?>
-                                <option value="<?php echo $s['service_id']; ?>" data-duration="<?php echo $s['duration_minutes']; ?>">
+                                <option
+                                    value="<?php echo $s['service_id']; ?>"
+                                    data-duration="<?php echo $s['duration_minutes']; ?>"
+                                    <?php echo ($prefilled_service_id === (int)$s['service_id']) ? 'selected' : ''; ?>
+                                >
                                     <?php echo htmlspecialchars($s['service_name']); ?> - ₱<?php echo number_format($s['price']); ?>
                                 </option>
                             <?php } ?>
@@ -466,7 +617,7 @@ input {
 
                     <div>
                         <label>Select Dentist</label>
-                        <select name="dentist_id" id="dentist" onchange="updateSummary()" required>
+                        <select name="dentist_id" id="dentist" onchange="updateSummary(); loadTimeSlots();" required>
                             <option value="">Choose dentist</option>
                             <?php while($d = mysqli_fetch_assoc($dentists)) { ?>
                                 <option value="<?php echo $d['dentist_id']; ?>">
@@ -536,6 +687,36 @@ const isRescheduleMode = <?php echo $is_reschedule_mode ? 'true' : 'false'; ?>;
 const lockedServiceText = <?php echo json_encode($is_reschedule_mode ? ($locked_service_name . ' - ₱' . number_format($locked_service_price)) : ''); ?>;
 const lockedDentistText = <?php echo json_encode($is_reschedule_mode ? ('Dr. ' . $locked_dentist_name) : ''); ?>;
 const lockedDuration = <?php echo (int)$locked_service_duration; ?>;
+const excludeAppointmentId = <?php echo (int)$reschedule_id; ?>;
+
+function getSelectedDentistId() {
+    const dentistEl = document.getElementById("dentist");
+    return dentistEl ? dentistEl.value : "";
+}
+
+function getCurrentDuration() {
+    if (isRescheduleMode) {
+        return lockedDuration || 60;
+    }
+
+    const serviceEl = document.getElementById("service");
+    if (serviceEl && serviceEl.selectedIndex > 0) {
+        return parseInt(serviceEl.options[serviceEl.selectedIndex].getAttribute("data-duration")) || 60;
+    }
+
+    return 60;
+}
+
+function formatTimeDisplay(rawTime) {
+    if (!rawTime) return "-";
+    let parts = rawTime.split(":");
+    let hour = parseInt(parts[0], 10);
+    let mins = parts[1] || "00";
+    let suffix = hour >= 12 ? "PM" : "AM";
+    let displayHour = hour % 12;
+    if (displayHour === 0) displayHour = 12;
+    return `${displayHour}:${mins} ${suffix}`;
+}
 
 function updateSummary() {
     let serviceEl = document.getElementById("service");
@@ -546,27 +727,21 @@ function updateSummary() {
         document.getElementById("sum_dentist").innerText = lockedDentistText || "-";
     } else {
         document.getElementById("sum_service").innerText =
-            serviceEl.options[serviceEl.selectedIndex]?.text || "-";
+            serviceEl && serviceEl.selectedIndex >= 0
+                ? (serviceEl.options[serviceEl.selectedIndex]?.text || "-")
+                : "-";
 
         document.getElementById("sum_dentist").innerText =
-            dentistEl.options[dentistEl.selectedIndex]?.text || "-";
+            dentistEl && dentistEl.selectedIndex >= 0
+                ? (dentistEl.options[dentistEl.selectedIndex]?.text || "-")
+                : "-";
     }
 
     document.getElementById("sum_date").innerText =
         document.getElementById("date").value || "-";
 
-    let rawTime = document.getElementById("time").value || "";
-    if (rawTime) {
-        let parts = rawTime.split(":");
-        let hour = parseInt(parts[0], 10);
-        let mins = parts[1] || "00";
-        let suffix = hour >= 12 ? "PM" : "AM";
-        let displayHour = hour % 12;
-        if (displayHour === 0) displayHour = 12;
-        document.getElementById("sum_time").innerText = `${displayHour}:${mins} ${suffix}`;
-    } else {
-        document.getElementById("sum_time").innerText = "-";
-    }
+    document.getElementById("sum_time").innerText =
+        formatTimeDisplay(document.getElementById("time").value || "");
 }
 
 let current = new Date();
@@ -617,11 +792,12 @@ function renderCalendar() {
             div.style.opacity = "0.4";
             div.style.pointerEvents = "none";
         } else {
-            div.onclick = () => {
+            div.onclick = async () => {
                 document.querySelectorAll(".day").forEach(x => x.classList.remove("selected"));
                 div.classList.add("selected");
                 document.getElementById("date").value = dateString;
-                loadTimeSlots();
+                document.getElementById("time").value = "";
+                await loadTimeSlots();
                 updateSummary();
             };
         }
@@ -630,43 +806,95 @@ function renderCalendar() {
     }
 }
 
-function loadTimeSlots() {
+async function loadTimeSlots() {
     let select = document.getElementById("time_select");
     select.innerHTML = "<option value=''>Choose a time slot</option>";
 
-    let duration = 60;
+    const selectedDate = document.getElementById("date").value;
+    const dentistId = getSelectedDentistId();
 
-    if (isRescheduleMode) {
-        duration = lockedDuration || 60;
-    } else {
-        let sSelect = document.getElementById("service");
-        if (sSelect.selectedIndex > 0) {
-            duration = parseInt(sSelect.options[sSelect.selectedIndex].getAttribute("data-duration")) || 60;
-        }
+    if (!selectedDate || !dentistId) {
+        return;
     }
 
-    let durationHours = duration / 60;
-    let endHour = 17 - durationHours;
+    const duration = getCurrentDuration();
+    let unavailableData = { full_day_blocked: false, unavailable_slots: [] };
 
-    for (let h = 9; h <= endHour; h++) {
-        let appointmentEnd = h + durationHours;
-        let timeStr = `${String(h).padStart(2,'0')}:00`;
-        let displayTime = h < 12 ? `${h}:00 AM` : (h === 12 ? `12:00 PM` : `${h - 12}:00 PM`);
+    try {
+        let url = `book-appointment.php?action=get_unavailable_slots&dentist_id=${encodeURIComponent(dentistId)}&date=${encodeURIComponent(selectedDate)}&duration=${encodeURIComponent(duration)}`;
 
-        let opt = document.createElement("option");
-        opt.value = timeStr;
-
-        if (h === 12) {
-            opt.text = "12:00 PM - Lunch Break";
-            opt.disabled = true;
-        } else if (h < 13 && appointmentEnd > 12) {
-            opt.text = `${displayTime} - Overlaps Lunch`;
-            opt.disabled = true;
-        } else {
-            opt.text = displayTime;
+        if (excludeAppointmentId > 0) {
+            url += `&exclude_appointment_id=${encodeURIComponent(excludeAppointmentId)}`;
         }
 
+        const response = await fetch(url, { cache: "no-store" });
+        unavailableData = await response.json();
+    } catch (error) {
+        console.error("Failed to load unavailable slots:", error);
+    }
+
+    if (unavailableData.full_day_blocked) {
+        let opt = document.createElement("option");
+        opt.value = "";
+        opt.text = "No available time slots";
+        opt.disabled = true;
+        opt.selected = true;
         select.appendChild(opt);
+        document.getElementById("time").value = "";
+        updateSummary();
+        return;
+    }
+
+    const unavailableSlots = unavailableData.unavailable_slots || [];
+    const fixedSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+
+    for (const slot of fixedSlots) {
+        const slotStart = new Date(`2000-01-01T${slot}:00`);
+        const slotEnd = new Date(slotStart.getTime() + (duration * 60000));
+
+        // guard: closing time
+        const clinicClose = new Date("2000-01-01T17:00:00");
+        if (slotEnd > clinicClose) {
+            continue;
+        }
+
+        // guard: lunch overlap
+        const lunchStart = new Date("2000-01-01T12:00:00");
+        const lunchEnd = new Date("2000-01-01T13:00:00");
+        if (slotStart < lunchEnd && slotEnd > lunchStart) {
+            continue;
+        }
+
+        let overlapsUnavailable = false;
+
+        for (const blocked of unavailableSlots) {
+            const blockedStart = new Date(`2000-01-01T${blocked}:00`);
+            const blockedEnd = new Date(blockedStart.getTime() + 60000 * 60);
+
+            if (slotStart < blockedEnd && slotEnd > blockedStart) {
+                overlapsUnavailable = true;
+                break;
+            }
+        }
+
+        if (overlapsUnavailable) {
+            continue;
+        }
+
+        let opt = document.createElement("option");
+        opt.value = slot;
+        opt.text = formatTimeDisplay(slot);
+        select.appendChild(opt);
+    }
+
+    if (select.options.length === 1) {
+        let opt = document.createElement("option");
+        opt.value = "";
+        opt.text = "No available time slots";
+        opt.disabled = true;
+        opt.selected = true;
+        select.appendChild(opt);
+        document.getElementById("time").value = "";
     }
 }
 
